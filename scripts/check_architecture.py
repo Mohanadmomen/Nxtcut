@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Architecture enforcement script for FreeCut-CPP.
+Architecture enforcement script for NxtCut-CPP.
 
 Enforces:
 1. engine/ must NEVER include any Qt headers (<Q...> or <Qt...>) or link Qt.
@@ -46,9 +46,9 @@ QT_CMAKE_REGEX = re.compile(
     re.IGNORECASE,
 )
 
-# Regex to extract #include <freecut/<module>/...>
-FREECUT_INCLUDE_REGEX = re.compile(
-    r'^\s*#\s*include\s*[<"]freecut/([a-zA-Z0-9_]+)/[^>"]+[>"]'
+# Regex to extract #include <nxtcut/<module>/...>
+NXTCUT_INCLUDE_REGEX = re.compile(
+    r'^\s*#\s*include\s*[<"]nxtcut/([a-zA-Z0-9_]+)/[^>"]+[>"]'
 )
 
 SOURCE_EXTENSIONS = {".hpp", ".h", ".cpp", ".cc", ".cxx", ".c"}
@@ -94,7 +94,7 @@ def scan_source_file(
             )
 
         # 2. Check engine module includes
-        match = FREECUT_INCLUDE_REGEX.search(line)
+        match = NXTCUT_INCLUDE_REGEX.search(line)
         if match:
             included_mod = match.group(1)
             # Intra-module include is always allowed
@@ -148,7 +148,7 @@ def run_checks(repo_root: Path) -> list[str]:
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Verify architectural boundaries of FreeCut-CPP engine."
+        description="Verify architectural boundaries of NxtCut-CPP engine."
     )
     parser.add_argument(
         "--root",
@@ -160,7 +160,7 @@ def main() -> int:
     repo_root = args.root.resolve()
 
     print("======================================================================")
-    print("FreeCut-CPP Architecture Enforcement")
+    print("NxtCut-CPP Architecture Enforcement")
     print(f"Scanning repository root: {repo_root}")
     print("======================================================================")
 

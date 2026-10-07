@@ -1,8 +1,8 @@
-#include <freecut/core/version.hpp>
+#include <nxtcut/core/version.hpp>
 
 #include <gtest/gtest.h>
 
-namespace freecut::core {
+namespace nxtcut::core {
 namespace {
 
 TEST(VersionTest, VersionReturnsValidSemanticVersion) {
@@ -46,4 +46,4 @@ TEST(VersionTest, VersionEqualityAndOrderingWork) {
 }
 
 }  // namespace
-}  // namespace freecut::core
+}  // namespace nxtcut::core

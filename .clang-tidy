@@ -14,7 +14,7 @@ Checks: >
 
 # Justification for disabled checks:
 # - modernize-use-trailing-return-type:
-#     FreeCut-CPP coding standards use traditional leading return types unless auto deduction is required.
+#     NxtCut-CPP coding standards use traditional leading return types unless auto deduction is required.
 # - readability-magic-numbers / cppcoreguidelines-avoid-magic-numbers:
 #     Generates excessive noise in unit test assertions, color matrices, versioning, and media constants.
 # - readability-function-cognitive-complexity:
@@ -26,6 +26,6 @@ Checks: >
 #     Permits standard coordinate and mathematical variables (e.g. x, y, w, h, i, j, id).
 
 WarningsAsErrors: ''
-HeaderFilterRegex: 'include/freecut/.*'
+HeaderFilterRegex: 'include/nxtcut/.*'
 FormatStyle: file
 ...

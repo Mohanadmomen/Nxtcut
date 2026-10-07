@@ -1,4 +1,4 @@
-# FreeCut-CPP Coding Standards
+# NxtCut-CPP Coding Standards
 
 These coding standards are mandatory across the entire codebase (both `engine/` and `app/`). All code is checked against these rules in code reviews, static analysis (`clang-tidy`), and automated tests.
 
@@ -23,7 +23,7 @@ These coding standards are mandatory across the entire codebase (both `engine/` 
 | **Local Variables** | `snake_case` | `clip_count`, `target_time` | Clear descriptive names |
 | **Member Variables** | `snake_case_` | `duration_`, `playback_speed_` | Trailing underscore for private members |
 | **Constants & Enumerators** | `kPascalCase` | `kMaxTrackCount`, `kDefaultFrameRate` | Compile-time or static constants |
-| **Namespaces** | `lowercase` | `freecut::core`, `freecut::model` | Nested, concise |
+| **Namespaces** | `lowercase` | `nxtcut::core`, `nxtcut::model` | Nested, concise |
 | **Files & Directories** | `snake_case` | `timeline_model.hpp`, `version.cpp` | Mirror primary type or responsibility |
 
 ---

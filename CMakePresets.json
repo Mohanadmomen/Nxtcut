@@ -13,7 +13,7 @@
       "toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
       "cacheVariables": {
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
-        "FREECUT_BUILD_TESTS": "ON"
+        "NXTCUT_BUILD_TESTS": "ON"
       }
     },
     {
@@ -44,8 +44,8 @@
       "binaryDir": "${sourceDir}/build/asan-ubsan",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
-        "FREECUT_ENABLE_ASAN": "ON",
-        "FREECUT_ENABLE_UBSAN": "ON"
+        "NXTCUT_ENABLE_ASAN": "ON",
+        "NXTCUT_ENABLE_UBSAN": "ON"
       }
     },
     {
@@ -56,7 +56,7 @@
       "binaryDir": "${sourceDir}/build/tsan",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
-        "FREECUT_ENABLE_TSAN": "ON"
+        "NXTCUT_ENABLE_TSAN": "ON"
       }
     },
     {

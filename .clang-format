@@ -22,7 +22,7 @@ AllowShortBlocksOnASingleLine: Never
 SortIncludes: CaseSensitive
 IncludeBlocks: Regroup
 IncludeCategories:
-  - Regex: '^<freecut/'
+  - Regex: '^<nxtcut/'
     Priority: 1
     SortPriority: 1
   - Regex: '^<(fmt|gtest|nlohmann|spdlog)/'

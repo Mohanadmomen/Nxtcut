@@ -1,15 +1,15 @@
-# cmake/FreecutModule.cmake
-# Modern CMake helper functions to declare FreeCut engine modules and tests.
+# cmake/NxtcutModule.cmake
+# Modern CMake helper functions to declare NxtCut engine modules and tests.
 
 include(CMakeParseArguments)
 include(CompilerWarnings)
 include(Sanitizers)
 
-# freecut_add_module(NAME <module_name> [SOURCES ...] [HEADERS ...] [DEPENDS ...] [PRIVATE_DEPENDS ...])
-# Declares a static library `freecut_<name>` with alias `freecut::<name>`.
-# Public headers live in `include/freecut/<name>/`, private code in `src/`.
+# nxtcut_add_module(NAME <module_name> [SOURCES ...] [HEADERS ...] [DEPENDS ...] [PRIVATE_DEPENDS ...])
+# Declares a static library `nxtcut_<name>` with alias `nxtcut::<name>`.
+# Public headers live in `include/nxtcut/<name>/`, private code in `src/`.
 # Public include directory is set to `include/`.
-function(freecut_add_module)
+function(nxtcut_add_module)
     cmake_parse_arguments(
         MODULE
         ""
@@ -19,10 +19,10 @@ function(freecut_add_module)
     )
 
     if(NOT MODULE_NAME)
-        message(FATAL_ERROR "freecut_add_module requires a NAME argument.")
+        message(FATAL_ERROR "nxtcut_add_module requires a NAME argument.")
     endif()
 
-    set(target_name "freecut_${MODULE_NAME}")
+    set(target_name "nxtcut_${MODULE_NAME}")
 
     # Discover sources and headers if not explicitly specified
     if(NOT MODULE_SOURCES)
@@ -46,7 +46,7 @@ function(freecut_add_module)
         ${MODULE_HEADERS}
     )
 
-    add_library(freecut::${MODULE_NAME} ALIAS ${target_name})
+    add_library(nxtcut::${MODULE_NAME} ALIAS ${target_name})
 
     target_compile_features(${target_name} PUBLIC cxx_std_20)
 
@@ -58,8 +58,8 @@ function(freecut_add_module)
             ${CMAKE_CURRENT_SOURCE_DIR}/src
     )
 
-    freecut_apply_warnings(${target_name})
-    freecut_apply_sanitizers(${target_name})
+    nxtcut_apply_warnings(${target_name})
+    nxtcut_apply_sanitizers(${target_name})
 
     if(MODULE_DEPENDS)
         target_link_libraries(${target_name} PUBLIC ${MODULE_DEPENDS})
@@ -70,10 +70,10 @@ function(freecut_add_module)
     endif()
 endfunction()
 
-# freecut_add_module_test(NAME <module_name> [SOURCES ...] [DEPENDS ...] [PRIVATE_DEPENDS ...])
-# Declares a test executable `freecut_test_<name>`, links `freecut::<name>` and GTest,
+# nxtcut_add_module_test(NAME <module_name> [SOURCES ...] [DEPENDS ...] [PRIVATE_DEPENDS ...])
+# Declares a test executable `nxtcut_test_<name>`, links `nxtcut::<name>` and GTest,
 # and registers discovered tests with CTest.
-function(freecut_add_module_test)
+function(nxtcut_add_module_test)
     cmake_parse_arguments(
         TEST
         ""
@@ -83,10 +83,10 @@ function(freecut_add_module_test)
     )
 
     if(NOT TEST_NAME)
-        message(FATAL_ERROR "freecut_add_module_test requires a NAME argument.")
+        message(FATAL_ERROR "nxtcut_add_module_test requires a NAME argument.")
     endif()
 
-    set(target_name "freecut_test_${TEST_NAME}")
+    set(target_name "nxtcut_test_${TEST_NAME}")
 
     if(NOT TEST_SOURCES)
         file(GLOB_RECURSE TEST_SOURCES
@@ -102,13 +102,13 @@ function(freecut_add_module_test)
 
     target_compile_features(${target_name} PRIVATE cxx_std_20)
 
-    freecut_apply_warnings(${target_name})
-    freecut_apply_sanitizers(${target_name})
+    nxtcut_apply_warnings(${target_name})
+    nxtcut_apply_sanitizers(${target_name})
 
     find_package(GTest REQUIRED)
 
     target_link_libraries(${target_name} PRIVATE
-        freecut::${TEST_NAME}
+        nxtcut::${TEST_NAME}
         GTest::gtest
         GTest::gtest_main
     )

@@ -1,4 +1,4 @@
 # tests/CMakeLists.txt
-# Test suites for FreeCut-CPP.
+# Test suites for NxtCut-CPP.
 
 add_subdirectory(core)

@@ -1,8 +1,8 @@
-#include <freecut/core/version.hpp>
+#include <nxtcut/core/version.hpp>
 
 #include <fmt/format.h>
 
-namespace freecut::core {
+namespace nxtcut::core {
 
 namespace {
 constexpr std::uint32_t kEngineVersionMajor = 0;
@@ -26,4 +26,4 @@ Version version() noexcept {
     };
 }
 
-}  // namespace freecut::core
+}  // namespace nxtcut::core

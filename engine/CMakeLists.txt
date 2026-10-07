@@ -1,4 +1,4 @@
 # engine/CMakeLists.txt
-# UI-free engine modules for FreeCut-CPP.
+# UI-free engine modules for NxtCut-CPP.
 
 add_subdirectory(core)

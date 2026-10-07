@@ -1,7 +1,7 @@
 # cmake/CompilerWarnings.cmake
-# FreeCut-CPP compiler warnings configuration.
+# NxtCut-CPP compiler warnings configuration.
 
-function(freecut_apply_warnings target_name)
+function(nxtcut_apply_warnings target_name)
     if(MSVC)
         target_compile_options(${target_name} PRIVATE
             /W4

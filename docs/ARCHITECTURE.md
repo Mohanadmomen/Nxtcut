@@ -1,8 +1,8 @@
-# FreeCut-CPP Architecture Guide
+# NxtCut-CPP Architecture Guide
 
 ## Overview
 
-FreeCut-CPP is structured as a strictly layered, multi-track desktop video editor inspired by modern timeline editors.
+NxtCut-CPP is structured as a strictly layered, multi-track desktop video editor inspired by modern timeline editors.
 The codebase is cleanly separated into two distinct architectural tiers:
 
 1. **`engine/`**: A pure, UI-free C++20 library containing all core video editing logic, data models, rendering pipelines, audio mixing, decoding, encoding, and plugin interfaces. **The engine must NEVER include or link Qt.**
@@ -103,17 +103,17 @@ When implementing the next engine module in sequence, follow these steps:
    ```
    engine/<module_name>/
      CMakeLists.txt
-     include/freecut/<module_name>/
+     include/nxtcut/<module_name>/
      src/
    ```
 
-2. **Define `CMakeLists.txt` using `freecut_add_module`**:
+2. **Define `CMakeLists.txt` using `nxtcut_add_module`**:
    ```cmake
-   freecut_add_module(
+   nxtcut_add_module(
        NAME <module_name>
        DEPENDS
            # Public dependencies exposed in headers
-           freecut::<allowed_dep>
+           nxtcut::<allowed_dep>
        PRIVATE_DEPENDS
            # Implementation dependencies
            fmt::fmt
@@ -126,7 +126,7 @@ When implementing the next engine module in sequence, follow these steps:
    ```
 
 4. **Verify architectural rules**:
-   Ensure all `#include <freecut/...>` statements respect the `ALLOWED_DEPENDENCIES` table in `scripts/check_architecture.py`.
+   Ensure all `#include <nxtcut/...>` statements respect the `ALLOWED_DEPENDENCIES` table in `scripts/check_architecture.py`.
 
 5. **Create unit tests**:
    ```
@@ -136,7 +136,7 @@ When implementing the next engine module in sequence, follow these steps:
    ```
    Configure `tests/<module_name>/CMakeLists.txt`:
    ```cmake
-   freecut_add_module_test(
+   nxtcut_add_module_test(
        NAME <module_name>
        SOURCES
            <feature>_test.cpp

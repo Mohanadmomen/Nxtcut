@@ -3,10 +3,10 @@
 #include <cstdint>
 #include <string>
 
-namespace freecut::core {
+namespace nxtcut::core {
 
 /**
- * @brief Semantic version representation {major, minor, patch} for FreeCut engine.
+ * @brief Semantic version representation {major, minor, patch} for NxtCut engine.
  *
  * @note Thread safety: Thread-safe (immutable data type with value semantics).
  */
@@ -39,7 +39,7 @@ struct Version {
 [[nodiscard]] std::string to_string(const Version& ver);
 
 /**
- * @brief Retrieves the current version of the FreeCut engine.
+ * @brief Retrieves the current version of the NxtCut engine.
  *
  * @return Engine version structure containing major, minor, and patch numbers.
  *
@@ -47,4 +47,4 @@ struct Version {
  */
 [[nodiscard]] Version version() noexcept;
 
-}  // namespace freecut::core
+}  // namespace nxtcut::core

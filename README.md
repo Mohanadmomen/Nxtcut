@@ -1,11 +1,11 @@
-# FreeCut-CPP
+# NxtCut-CPP
 
-FreeCut-CPP is a professional, open-source multi-track desktop video editor inspired by modern web and desktop editing workflows. Written in modern C++20, it features a strictly decoupled architecture:
+NxtCut-CPP is a professional, open-source multi-track desktop video editor inspired by modern web and desktop editing workflows. Written in modern C++20, it features a strictly decoupled architecture:
 
 - **`engine/`**: A headless, UI-free C++20 core video editing engine handling timeline data models, undo/redo commands, keyframe animations, media decoding (FFmpeg), CPU/GPU rendering, audio mixing, export pipelines, and plugin APIs. **The engine never links or includes Qt.**
 - **`app/`**: A desktop user interface built with Qt 6 Widgets that consumes the engine.
 
-FreeCut-CPP is licensed under the permissive [MIT License](LICENSE).
+NxtCut-CPP is licensed under the permissive [MIT License](LICENSE).
 
 ---
 
@@ -177,7 +177,7 @@ ctest -R check_architecture --output-on-failure
 
 - **clang-format**: Code formatting is enforced using `.clang-format` (Google style, 100 column limit, 4 spaces).
   ```bash
-  clang-format -i engine/core/include/freecut/core/*.hpp engine/core/src/*.cpp tests/core/*.cpp
+  clang-format -i engine/core/include/nxtcut/core/*.hpp engine/core/src/*.cpp tests/core/*.cpp
   ```
 - **clang-tidy**: Static analysis configuration is maintained in `.clang-tidy`.
 
