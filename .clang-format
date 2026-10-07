@@ -1,0 +1,43 @@
+---
+Language: Cpp
+BasedOnStyle: Google
+Standard: Latest
+ColumnLimit: 100
+
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+AccessModifierOffset: -4
+ConstructorInitializerIndentWidth: 4
+ContinuationIndentWidth: 4
+
+NamespaceIndentation: None
+FixNamespaceComments: true
+
+AllowShortFunctionsOnASingleLine: Inline
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+AllowShortBlocksOnASingleLine: Never
+
+SortIncludes: CaseSensitive
+IncludeBlocks: Regroup
+IncludeCategories:
+  - Regex: '^<freecut/'
+    Priority: 1
+    SortPriority: 1
+  - Regex: '^<(fmt|gtest|nlohmann|spdlog)/'
+    Priority: 2
+    SortPriority: 2
+  - Regex: '^<[a-z0-9_]+>'
+    Priority: 3
+    SortPriority: 3
+  - Regex: '.*'
+    Priority: 4
+    SortPriority: 4
+
+SpaceBeforeParens: ControlStatements
+SpacesInAngles: false
+SpacesInLineCommentPrefix:
+  Minimum: 1
+  Maximum: 1
+...

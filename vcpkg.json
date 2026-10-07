@@ -1,0 +1,15 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
+  "name": "freecut-cpp",
+  "version-string": "0.1.0",
+  "description": "FreeCut-CPP desktop video editor engine",
+  "homepage": "https://github.com/freecut/freecut-cpp",
+  "license": "MIT",
+  "builtin-baseline": "08d0fe224aa55920c20eac560021b004102dbe8f",
+  "dependencies": [
+    "fmt",
+    "gtest",
+    "nlohmann-json",
+    "spdlog"
+  ]
+}

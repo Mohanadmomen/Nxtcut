@@ -1,0 +1,166 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint-and-architecture:
+    name: Lint & Architecture Verification
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Verify Architecture Boundaries
+        run: |
+          python3 scripts/check_architecture.py
+
+      - name: Install clang-format
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-format
+
+      - name: Check code formatting
+        run: |
+          clang-format --dry-run -Werror $(git ls-files '*.cpp' '*.hpp')
+
+  matrix-build-test:
+    name: ${{ matrix.name }}
+    needs: [lint-and-architecture]
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Ubuntu GCC (Debug)
+            os: ubuntu-latest
+            compiler: gcc
+            preset: debug
+            cc: gcc-13
+            cxx: g++-13
+          - name: Ubuntu Clang (Debug)
+            os: ubuntu-latest
+            compiler: clang
+            preset: debug
+            cc: clang-17
+            cxx: clang++-17
+          - name: Windows MSVC (Debug)
+            os: windows-latest
+            compiler: msvc
+            preset: windows-debug
+          - name: macOS AppleClang (Debug)
+            os: macos-latest
+            compiler: apple-clang
+            preset: debug
+
+    env:
+      VCPKG_ROOT: ${{ env.VCPKG_INSTALLATION_ROOT }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Cache vcpkg binary artifacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/vcpkg/archives
+            ~/Library/Caches/vcpkg/archives
+            C:/Users/runneradmin/AppData/Local/vcpkg/archives
+          key: vcpkg-${{ runner.os }}-${{ matrix.compiler }}-${{ hashFiles('vcpkg.json') }}
+          restore-keys: |
+            vcpkg-${{ runner.os }}-${{ matrix.compiler }}-
+
+      - name: Setup Linux compiler alternatives
+        if: runner.os == 'Linux'
+        run: |
+          echo "CC=${{ matrix.cc }}" >> $GITHUB_ENV
+          echo "CXX=${{ matrix.cxx }}" >> $GITHUB_ENV
+
+      - name: Configure CMake preset
+        run: |
+          cmake --preset ${{ matrix.preset }}
+
+      - name: Build target
+        run: |
+          cmake --build --preset ${{ matrix.preset }}
+
+      - name: Run CTest test suite
+        run: |
+          ctest --preset ${{ matrix.preset }}
+
+  sanitizers-asan-ubsan:
+    name: Linux ASan + UBSan
+    needs: [lint-and-architecture]
+    runs-on: ubuntu-latest
+    env:
+      VCPKG_ROOT: ${{ env.VCPKG_INSTALLATION_ROOT }}
+      CC: clang-17
+      CXX: clang++-17
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Cache vcpkg binary artifacts
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/vcpkg/archives
+          key: vcpkg-asan-ubsan-${{ hashFiles('vcpkg.json') }}
+          restore-keys: |
+            vcpkg-asan-ubsan-
+
+      - name: Configure CMake preset
+        run: |
+          cmake --preset asan-ubsan
+
+      - name: Build with ASan + UBSan
+        run: |
+          cmake --build --preset asan-ubsan
+
+      - name: Run tests with ASan + UBSan
+        run: |
+          ctest --preset asan-ubsan
+
+  sanitizers-tsan:
+    name: Linux TSan
+    needs: [lint-and-architecture]
+    runs-on: ubuntu-latest
+    env:
+      VCPKG_ROOT: ${{ env.VCPKG_INSTALLATION_ROOT }}
+      CC: clang-17
+      CXX: clang++-17
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Cache vcpkg binary artifacts
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/vcpkg/archives
+          key: vcpkg-tsan-${{ hashFiles('vcpkg.json') }}
+          restore-keys: |
+            vcpkg-tsan-
+
+      - name: Configure CMake preset
+        run: |
+          cmake --preset tsan
+
+      - name: Build with TSan
+        run: |
+          cmake --build --preset tsan
+
+      - name: Run tests with TSan
+        run: |
+          ctest --preset tsan

@@ -1,0 +1,31 @@
+---
+Checks: >
+  bugprone-*,
+  performance-*,
+  modernize-*,
+  readability-*,
+  cppcoreguidelines-*,
+  -modernize-use-trailing-return-type,
+  -readability-magic-numbers,
+  -cppcoreguidelines-avoid-magic-numbers,
+  -readability-function-cognitive-complexity,
+  -cppcoreguidelines-pro-bounds-pointer-arithmetic,
+  -readability-identifier-length
+
+# Justification for disabled checks:
+# - modernize-use-trailing-return-type:
+#     FreeCut-CPP coding standards use traditional leading return types unless auto deduction is required.
+# - readability-magic-numbers / cppcoreguidelines-avoid-magic-numbers:
+#     Generates excessive noise in unit test assertions, color matrices, versioning, and media constants.
+# - readability-function-cognitive-complexity:
+#     Arbitrary metric that conflicts with straight-line pipeline branches; function length (<40 lines)
+#     is enforced directly via coding standards.
+# - cppcoreguidelines-pro-bounds-pointer-arithmetic:
+#     Direct pixel buffer traversal, audio sample strides, and SIMD operations require pointer arithmetic.
+# - readability-identifier-length:
+#     Permits standard coordinate and mathematical variables (e.g. x, y, w, h, i, j, id).
+
+WarningsAsErrors: ''
+HeaderFilterRegex: 'include/freecut/.*'
+FormatStyle: file
+...
