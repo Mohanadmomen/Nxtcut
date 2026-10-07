@@ -1,0 +1,147 @@
+#include <nxtcut/core/mul_div.hpp>
+
+#include <cstdint>
+
+#if defined(_MSC_VER) && (defined(_M_X64) || defined(_M_AMD64))
+#include <immintrin.h>
+#include <intrin.h>
+#endif
+
+namespace nxtcut::core {
+
+namespace {
+
+[[nodiscard]] constexpr std::uint64_t uabs(std::int64_t v) noexcept {
+    return (v < 0) ? (0ULL - static_cast<std::uint64_t>(v)) : static_cast<std::uint64_t>(v);
+}
+
+#if !defined(__SIZEOF_INT128__) && !(defined(_MSC_VER) && (defined(_M_X64) || defined(_M_AMD64)))
+struct Uint128 {
+    std::uint64_t hi{0};
+    std::uint64_t lo{0};
+};
+
+[[nodiscard]] Uint128 mul64(std::uint64_t u, std::uint64_t v) noexcept {
+    const std::uint64_t u0 = u & 0xFFFFFFFFULL;
+    const std::uint64_t u1 = u >> 32;
+    const std::uint64_t v0 = v & 0xFFFFFFFFULL;
+    const std::uint64_t v1 = v >> 32;
+
+    const std::uint64_t w0 = u0 * v0;
+    const std::uint64_t t = u1 * v0 + (w0 >> 32);
+    const std::uint64_t w1 = t & 0xFFFFFFFFULL;
+    const std::uint64_t w2 = t >> 32;
+    const std::uint64_t w1_prime = u0 * v1 + w1;
+
+    const std::uint64_t lo = (w1_prime << 32) | (w0 & 0xFFFFFFFFULL);
+    const std::uint64_t hi = u1 * v1 + w2 + (w1_prime >> 32);
+    return {hi, lo};
+}
+#endif
+
+}  // namespace
+
+Result<std::int64_t> mul_div(
+    std::int64_t a,
+    std::int64_t b,
+    std::int64_t c,
+    RoundingMode mode
+) noexcept {
+    if (c == 0) {
+        return make_error(ErrorCode::InvalidArgument, "Division by zero in mul_div");
+    }
+
+    if (a == 0 || b == 0) {
+        return static_cast<std::int64_t>(0);
+    }
+
+    const bool is_negative = (a < 0) ^ (b < 0) ^ (c < 0);
+    const std::uint64_t ua = uabs(a);
+    const std::uint64_t ub = uabs(b);
+    const std::uint64_t qc = uabs(c);
+
+    std::uint64_t q_trunc = 0;
+    std::uint64_t rem = 0;
+
+#if defined(__SIZEOF_INT128__)
+    const unsigned __int128 p = static_cast<unsigned __int128>(ua) * static_cast<unsigned __int128>(ub);
+    const unsigned __int128 q_128 = p / qc;
+    if (q_128 > 0x8000000000000000ULL) {
+        return make_error(ErrorCode::Overflow, "mul_div intermediate quotient exceeds 64-bit signed magnitude");
+    }
+    q_trunc = static_cast<std::uint64_t>(q_128);
+    rem = static_cast<std::uint64_t>(p % qc);
+#elif defined(_MSC_VER) && (defined(_M_X64) || defined(_M_AMD64))
+    unsigned __int64 hi = 0;
+    const unsigned __int64 lo = _umul128(ua, ub, &hi);
+    if (hi >= qc) {
+        return make_error(ErrorCode::Overflow, "mul_div intermediate quotient exceeds 64-bit unsigned capacity");
+    }
+    unsigned __int64 rem_val = 0;
+    const unsigned __int64 q_val = _udiv128(hi, lo, qc, &rem_val);
+    if (q_val > 0x8000000000000000ULL) {
+        return make_error(ErrorCode::Overflow, "mul_div intermediate quotient exceeds 64-bit signed magnitude");
+    }
+    q_trunc = q_val;
+    rem = rem_val;
+#else
+    const Uint128 prod = mul64(ua, ub);
+    if (prod.hi >= qc) {
+        return make_error(ErrorCode::Overflow, "mul_div intermediate quotient exceeds 64-bit unsigned capacity");
+    }
+    if (prod.hi == 0) {
+        q_trunc = prod.lo / qc;
+        rem = prod.lo % qc;
+    } else {
+        rem = prod.hi;
+        for (int i = 63; i >= 0; --i) {
+            const std::uint64_t next_bit = (prod.lo >> static_cast<unsigned>(i)) & 1ULL;
+            const bool overflow_or_ge = (rem >= 0x8000000000000000ULL) || (((rem << 1) | next_bit) >= qc);
+            if (overflow_or_ge) {
+                q_trunc |= (1ULL << static_cast<unsigned>(i));
+                rem = (((rem << 1) | next_bit) - qc);
+            } else {
+                rem = (rem << 1) | next_bit;
+            }
+        }
+    }
+    if (q_trunc > 0x8000000000000000ULL) {
+        return make_error(ErrorCode::Overflow, "mul_div intermediate quotient exceeds 64-bit signed magnitude");
+    }
+#endif
+
+    bool add_one = false;
+    if (rem != 0) {
+        if (mode == RoundingMode::Nearest) {
+            add_one = (rem >= (qc - rem));
+        } else if (mode == RoundingMode::Floor) {
+            add_one = is_negative;
+        } else if (mode == RoundingMode::Ceil) {
+            add_one = !is_negative;
+        }
+    }
+
+    if (add_one) {
+        if (q_trunc == 0xFFFFFFFFFFFFFFFFULL) {
+            return make_error(ErrorCode::Overflow, "mul_div rounding overflow");
+        }
+        ++q_trunc;
+    }
+
+    if (!is_negative) {
+        if (q_trunc > 0x7FFFFFFFFFFFFFFFULL) {
+            return make_error(ErrorCode::Overflow, "mul_div positive result exceeds int64 maximum");
+        }
+        return static_cast<std::int64_t>(q_trunc);
+    }
+
+    if (q_trunc > 0x8000000000000000ULL) {
+        return make_error(ErrorCode::Overflow, "mul_div negative result exceeds int64 minimum magnitude");
+    }
+    if (q_trunc == 0x8000000000000000ULL) {
+        return INT64_MIN;
+    }
+    return -static_cast<std::int64_t>(q_trunc);
+}
+
+}  // namespace nxtcut::core

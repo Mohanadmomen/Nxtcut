@@ -10,6 +10,7 @@
     "fmt",
     "gtest",
     "nlohmann-json",
-    "spdlog"
+    "spdlog",
+    "tl-expected"
   ]
 }

@@ -52,14 +52,31 @@ These coding standards are mandatory across the entire codebase (both `engine/` 
 
 ## 5. Error Handling Architecture
 
-- **Expected Failures**: Do not use exceptions for expected operational failures (e.g. invalid user input, unsupported codec, missing file, disk full).
-- **Result Pattern**: Use a value-based `Result<T>` or `std::expected`-style error type for expected failures.
-- **Programmer Errors & Preconditions**: Exceptions are reserved solely for unrecoverable logic bugs and internal invariant violations (e.g., standard library memory exhaustion).
+- **No Exceptions for Expected Failures**: Do not use exceptions for expected operational failures (e.g. invalid user input, unsupported codec, missing file, disk full, out-of-range bounds, arithmetic overflow).
+- **Result Pattern**: Use `nxtcut::core::Result<T>` (`tl::expected<T, Error>`) and `Status` (`Result<void>`) universally across all engine APIs.
+- **Error Construction**: Use `make_error(ErrorCode, message)` helper to return an unexpected `Error` cleanly from functions returning `Result<T>`.
+- **Context Chaining**: When propagating errors across component layers, augment failures with contextual information using `error.with_context("context_description")` to preserve hierarchical diagnostic traces (`context: original message`).
+- **No Macros**: Error propagation and creation macros are banned; all error paths must be explicit and readable.
+- **Programmer Errors & Preconditions**: Exceptions are reserved solely for unrecoverable logic bugs and internal invariant violations (e.g., standard library allocation failure).
 - **Module Boundary Invariant**: Exceptions must **never** escape across engine module boundaries or across the engine-to-application boundary.
 
 ---
 
-## 6. Software Design & Clean Architecture
+## 6. Strong-Type Policy
+
+- **No Raw Primitives for Domain Quantities**: Domain quantities with distinct physical units or semantic roles (such as timeline instants `TimePoint`, temporal spans `Duration`, frame indices `FrameIndex`, or entity identifiers `Id<Tag>`) must **never** be modeled as raw primitive types (`int64_t`, `uint64_t`, `double`).
+- **No Implicit Conversions**: Implicit conversions to or from primitive types, as well as conversions between distinct strong types, are strictly prohibited. Single-argument constructors must be `explicit` or use named static factories (e.g. `Duration::from_ticks()`).
+- **Compile-Time Dimensional Correctness**:
+  - Operators must model exact physical semantics:
+    - $\text{TimePoint} - \text{TimePoint} = \text{Duration}$
+    - $\text{TimePoint} \pm \text{Duration} = \text{TimePoint}$
+    - $\text{TimePoint} + \text{TimePoint}$ is physically meaningless and must **never** compile.
+    - $\text{FrameIndex} \pm \text{int64}$ and $\text{FrameIndex} - \text{FrameIndex}$ are allowed, but $\text{FrameIndex} + \text{FrameIndex}$ must **never** compile.
+  - Tagged entity handles (`Id<ClipTag>`, `Id<TrackTag>`) must never be convertible, constructible, assignable, or comparable across distinct tag types.
+- **Static Assert Enforcement**: Unit tests for strongly-typed primitives must enforce negative compilation checks using `static_assert(!requires(...) { ... });` rather than comments or speculative assertions.
+---
+
+## 7. Software Design & Clean Architecture
 
 - **Single Responsibility Principle**: One primary responsibility per class and per file.
 - **Function Size**: Functions should be small and focused. Aim for under 40 lines.
@@ -72,7 +89,7 @@ These coding standards are mandatory across the entire codebase (both `engine/` 
 
 ---
 
-## 7. Documentation & Comments
+## 8. Documentation & Comments
 
 - **Doxygen for Public APIs**: Every public class, struct, function, and interface must have clear Doxygen documentation (`/** ... */`).
 - **Thread Safety Guarantees**: Every public class must explicitly document its thread safety guarantees in its Doxygen comment (e.g. `Thread-safe`, `Thread-compatible`, or `Main-thread only`).
@@ -80,7 +97,7 @@ These coding standards are mandatory across the entire codebase (both `engine/` 
 
 ---
 
-## 8. Unit Testing Conventions
+## 9. Unit Testing Conventions
 
 - **Framework**: GoogleTest (`gtest`).
 - **File Structure**: Test directories and files directly mirror the production source code:

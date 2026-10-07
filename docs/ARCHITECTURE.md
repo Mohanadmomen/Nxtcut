@@ -18,8 +18,35 @@ Engine modules are introduced incrementally in a strict dependency sequence:
 `core` &rarr; `model` &rarr; `commands` &rarr; `keyframes` &rarr; `storage` &rarr; `media` &rarr; `playback` &rarr; `render` &rarr; `effects` &rarr; `audio` &rarr; `export` &rarr; `plugins` &rarr; `analysis`.
 
 ### 1. `core`
-Provides fundamental utility primitives, math types, error handling abstractions (`Result<T>`), logging interfaces, profiling hooks, and engine version metadata used universally across all downstream modules.
+Provides fundamental utility primitives, domain-specific math types, error handling abstractions (`Result<T>`), time models, conversions, and engine version metadata used universally across all downstream modules.
 
+Core module components:
+- **Error Modeling (`error.hpp`, `result.hpp`)**: `ErrorCode` enumeration and `Error` class providing context chaining (`with_context()`). Value-based `Result<T>` and `Status` (`tl::expected`) error returns with `make_error()` helper for zero-exception operational failure handling.
+- **Checked Arithmetic (`mul_div.hpp`)**: Portable `mul_div()` computing `round(a * b / c)` with a 128-bit intermediate (via `__int128`, MSVC x64 intrinsics `_umul128`/`_udiv128`, and a software fallback) and configurable rounding (`Floor`, `Nearest`, `Ceil`).
+- **Time Model (`time.hpp`)**: Strong types `TimePoint` and `Duration` based on an integer tick clock, and `TimeRange` half-open interval `[start, end)` math.
+- **Frame Rate & Sample Rate (`frame_rate.hpp`)**: Rational `FrameRate` with GCD reduction and exact fraction comparison, plus `SampleRate` for audio.
+- **Conversions (`frame_time.hpp`)**: Discrete `FrameIndex` conversions (`frame_to_time`, `time_to_frame`, `snap_to_frame`, `samples_to_time`, `time_to_samples`) with zero accumulated drift.
+- **Timecode (`timecode.hpp`)**: SMPTE timecode supporting non-drop and drop-frame accounting (for 29.97 and 59.94 fps), parsing, formatting, and frame index round-tripping.
+- **Identifiers (`uuid.hpp`, `id.hpp`)**: RFC 4122 version-4 `Uuid`, thread-safe `UuidGenerator`, and type-safe `Id<Tag>` strong entity handles.
+
+#### The NxtCut Time Model
+
+Professional multi-track timeline editing requires sub-frame precision, audio-sample alignment, and zero drift across long projects. The NxtCut time architecture adheres to three core design principles:
+
+1. **Integer Ticks instead of Floating-Point**:
+   Floating-point representations (`double` or `float`) suffer from non-associative rounding and representation error that compounds when accumulating durations or converting between frame indices and timeline timestamps. Over hours of multi-track media playback, floating-point inaccuracies cause audio/video drift and misaligned edit boundaries. Using 64-bit signed integer ticks guarantees exact arithmetic, associativity, deterministic serialization, and spans approximately $\pm 414$ years without overflow.
+
+2. **Why 705,600,000 Ticks per Second (`kTicksPerSecond`)**:
+   The master timeline clock frequency is defined as $705,600,000 = 2^9 \times 3^2 \times 5^5 \times 7^2$ ticks per second. This frequency is the lowest common multiple that evenly divides:
+   - All standard film and video frame rates: 24, 25, 30, 48, 50, 60, 100, 120 fps.
+   - Fractional NTSC broadcast frame rates: $24000/1001$ (23.976 fps), $30000/1001$ (29.97 fps), and $60000/1001$ (59.94 fps). For instance, at 29.97 fps, one frame is exactly $\frac{705,600,000 \times 1001}{30000} = 23,543,520$ integer ticks.
+   - All professional audio sampling rates: 44.1 kHz ($16,000$ ticks/sample), 48 kHz ($14,700$ ticks/sample), 96 kHz ($7,350$ ticks/sample), and 192 kHz ($3,675$ ticks/sample).
+   Because every standard video frame and audio sample period corresponds to an exact integer number of ticks, time math produces no rational remainders under standard rates.
+
+3. **How Conversions Avoid Drift**:
+   Downstream systems must never track playback or clip placement by repeatedly adding per-frame durations $\Delta t$. Doing so accumulates rounding adjustments when rates have fractional periods. Instead, NxtCut conversions always evaluate directly from the absolute frame index:
+   $$\text{time} = \text{round}\left(\frac{\text{frame} \times \text{denominator} \times kTicksPerSecond}{\text{numerator}}\right)$$
+   using `mul_div()` with 128-bit intermediate precision and `Nearest` rounding (half away from zero). Consequently, frame $N$ always maps to the exact same timeline instant regardless of scrubbing history, timeline zoom, or playback speed.
 ### 2. `model`
 Defines the core document object model for multi-track video editing, including project metadata, timelines, audio/video tracks, clip entities, transitions, and timeline markers without any execution logic or side effects.
 
