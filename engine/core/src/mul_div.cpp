@@ -15,6 +15,11 @@ namespace {
     return (v < 0) ? (0ULL - static_cast<std::uint64_t>(v)) : static_cast<std::uint64_t>(v);
 }
 
+#if defined(__SIZEOF_INT128__)
+// __extension__ keeps GCC quiet under -Wpedantic (ISO C++ has no 128-bit integer).
+__extension__ typedef unsigned __int128 Uint128Native;
+#endif
+
 #if !defined(__SIZEOF_INT128__) && !(defined(_MSC_VER) && (defined(_M_X64) || defined(_M_AMD64)))
 struct Uint128 {
     std::uint64_t hi{0};
@@ -60,9 +65,8 @@ Result<std::int64_t> mul_div(std::int64_t a, std::int64_t b, std::int64_t c,
     std::uint64_t rem = 0;
 
 #if defined(__SIZEOF_INT128__)
-    const unsigned __int128 p =
-        static_cast<unsigned __int128>(ua) * static_cast<unsigned __int128>(ub);
-    const unsigned __int128 q_128 = p / qc;
+    const Uint128Native p = static_cast<Uint128Native>(ua) * static_cast<Uint128Native>(ub);
+    const Uint128Native q_128 = p / qc;
     if (q_128 > 0x8000000000000000ULL) {
         return make_error(ErrorCode::Overflow,
                           "mul_div intermediate quotient exceeds 64-bit signed magnitude");
