@@ -46,7 +46,8 @@ These coding standards are mandatory across the entire codebase (both `engine/` 
 
 - **No Global Mutable State**: Mutable global variables and function-local static variables holding mutable state are prohibited.
 - **No Singletons**: The singleton pattern is banned.
-- **Explicit Dependency Injection**: Pass all collaborators explicitly via constructors or method parameters. This keeps components testable, re-entrant, and deterministic.
+- **Explicit Dependency Injection**: Pass all collaborators explicitly via constructors or method parameters. Loggers are injected; no global or static logger instances exist. This keeps components testable, re-entrant, and deterministic.
+- **Asynchronous Cancellation**: Every long-running, asynchronous, or background task must accept a `CancellationToken` and cooperatively check for cancellation.
 
 ---
 
@@ -105,3 +106,4 @@ These coding standards are mandatory across the entire codebase (both `engine/` 
   - Test: `tests/core/version_test.cpp`
 - **Isolation**: Each test case must be completely independent and deterministic. No dependencies on network access, ambient system time, or test execution order.
 - **Speed**: Tests must execute in milliseconds. Heavy media rendering tests should use minimal synthetic fixtures.
+- **Tests Never Sleep**: Tests must never rely on `sleep` or arbitrary timeouts for concurrency or synchronization. Synchronize asynchronous work deterministically using `std::promise`, `std::future`, `wait_idle()`, or hand-written condition variable synchronization.
