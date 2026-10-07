@@ -11,10 +11,8 @@ Result<TimeRange> TimeRange::create(TimePoint start, Duration d) {
 
 Result<TimeRange> TimeRange::from_start_end(TimePoint start, TimePoint end) {
     if (end < start) {
-        return make_error(
-            ErrorCode::InvalidArgument,
-            "TimeRange end point must not precede start point"
-        );
+        return make_error(ErrorCode::InvalidArgument,
+                          "TimeRange end point must not precede start point");
     }
     return TimeRange(start, end - start);
 }

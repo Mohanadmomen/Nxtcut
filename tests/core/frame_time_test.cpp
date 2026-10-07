@@ -1,12 +1,12 @@
 #include <nxtcut/core/frame_rate.hpp>
 #include <nxtcut/core/frame_time.hpp>
 
-#include "compile_checks.hpp"
-
 #include <gtest/gtest.h>
 
 #include <array>
 #include <vector>
+
+#include "compile_checks.hpp"
 
 namespace nxtcut::core {
 namespace {
@@ -19,8 +19,10 @@ static_assert(CanAdd<FrameIndex, std::int64_t>);
 static_assert(CanAdd<std::int64_t, FrameIndex>);
 static_assert(CanSubtract<FrameIndex, std::int64_t>);
 static_assert(CanSubtract<FrameIndex, FrameIndex>);
-static_assert(!std::is_convertible_v<FrameIndex, std::int64_t>, "FrameIndex must not convert implicitly to int64");
-static_assert(!std::is_convertible_v<std::int64_t, FrameIndex>, "int64 must not convert implicitly to FrameIndex");
+static_assert(!std::is_convertible_v<FrameIndex, std::int64_t>,
+              "FrameIndex must not convert implicitly to int64");
+static_assert(!std::is_convertible_v<std::int64_t, FrameIndex>,
+              "int64 must not convert implicitly to FrameIndex");
 
 TEST(FrameTimeTest, FrameIndexArithmetic) {
     FrameIndex idx(100);
@@ -70,7 +72,7 @@ TEST(FrameTimeTest, FrameDurationExactness) {
 }
 
 TEST(FrameTimeTest, SnapToFrame) {
-    const FrameRate rate = frame_rates::k24; // 29,400,000 ticks per frame
+    const FrameRate rate = frame_rates::k24;  // 29,400,000 ticks per frame
 
     // Exact frame 1
     const TimePoint tp_frame1 = TimePoint::from_ticks(29'400'000);
@@ -116,9 +118,7 @@ TEST(FrameTimeTest, AudioSampleConversions) {
 
 TEST(FrameTimeTest, FrameTimeToFrameRoundTripInvariant) {
     using namespace frame_rates;
-    const std::array<FrameRate, 8> rates = {
-        k23_976, k24, k25, k29_97, k30, k50, k59_94, k60
-    };
+    const std::array<FrameRate, 8> rates = {k23_976, k24, k25, k29_97, k30, k50, k59_94, k60};
 
     std::vector<std::int64_t> test_frames;
     test_frames.reserve(500);

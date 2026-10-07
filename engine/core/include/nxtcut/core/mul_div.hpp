@@ -29,11 +29,7 @@ enum class RoundingMode {
  *
  * @note Thread safety: Thread-safe (pure function).
  */
-[[nodiscard]] Result<std::int64_t> mul_div(
-    std::int64_t a,
-    std::int64_t b,
-    std::int64_t c,
-    RoundingMode mode
-) noexcept;
+[[nodiscard]] Result<std::int64_t> mul_div(std::int64_t a, std::int64_t b, std::int64_t c,
+                                           RoundingMode mode) noexcept;
 
 }  // namespace nxtcut::core

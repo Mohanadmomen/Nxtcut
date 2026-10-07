@@ -1,16 +1,15 @@
 #include <nxtcut/core/frame_rate.hpp>
 
 #include <fmt/format.h>
+
 #include <numeric>
 
 namespace nxtcut::core {
 
 Result<FrameRate> FrameRate::create(std::int32_t num, std::int32_t den) {
     if (num <= 0 || den <= 0) {
-        return make_error(
-            ErrorCode::InvalidArgument,
-            "FrameRate numerator and denominator must both be positive integers"
-        );
+        return make_error(ErrorCode::InvalidArgument,
+                          "FrameRate numerator and denominator must both be positive integers");
     }
     const std::int32_t divisor = std::gcd(num, den);
     return FrameRateInternalAccess::make(num / divisor, den / divisor);
@@ -39,10 +38,7 @@ std::string FrameRate::to_string() const {
 
 Result<SampleRate> SampleRate::create(std::int32_t value) {
     if (value <= 0) {
-        return make_error(
-            ErrorCode::InvalidArgument,
-            "SampleRate must be a positive integer"
-        );
+        return make_error(ErrorCode::InvalidArgument, "SampleRate must be a positive integer");
     }
     return SampleRateInternalAccess::make(value);
 }

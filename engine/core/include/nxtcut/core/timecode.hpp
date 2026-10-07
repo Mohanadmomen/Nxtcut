@@ -27,13 +27,8 @@ class Timecode {
 public:
     constexpr Timecode() noexcept = default;
 
-    constexpr Timecode(
-        std::uint32_t hours,
-        std::uint32_t minutes,
-        std::uint32_t seconds,
-        std::uint32_t frames,
-        DropFrameMode drop_mode
-    ) noexcept
+    constexpr Timecode(std::uint32_t hours, std::uint32_t minutes, std::uint32_t seconds,
+                       std::uint32_t frames, DropFrameMode drop_mode) noexcept
         : hours_(hours),
           minutes_(minutes),
           seconds_(seconds),
@@ -43,11 +38,8 @@ public:
     /**
      * @brief Computes timecode from a zero-based frame index, frame rate, and drop-frame mode.
      */
-    [[nodiscard]] static Result<Timecode> from_frame(
-        FrameIndex frame,
-        FrameRate rate,
-        DropFrameMode drop_mode
-    ) noexcept;
+    [[nodiscard]] static Result<Timecode> from_frame(FrameIndex frame, FrameRate rate,
+                                                     DropFrameMode drop_mode) noexcept;
 
     /**
      * @brief Converts this timecode into its equivalent zero-based frame index.
@@ -66,25 +58,15 @@ public:
      */
     [[nodiscard]] static Result<Timecode> parse(std::string_view str, FrameRate rate);
 
-    [[nodiscard]] constexpr std::uint32_t hours() const noexcept {
-        return hours_;
-    }
+    [[nodiscard]] constexpr std::uint32_t hours() const noexcept { return hours_; }
 
-    [[nodiscard]] constexpr std::uint32_t minutes() const noexcept {
-        return minutes_;
-    }
+    [[nodiscard]] constexpr std::uint32_t minutes() const noexcept { return minutes_; }
 
-    [[nodiscard]] constexpr std::uint32_t seconds() const noexcept {
-        return seconds_;
-    }
+    [[nodiscard]] constexpr std::uint32_t seconds() const noexcept { return seconds_; }
 
-    [[nodiscard]] constexpr std::uint32_t frames() const noexcept {
-        return frames_;
-    }
+    [[nodiscard]] constexpr std::uint32_t frames() const noexcept { return frames_; }
 
-    [[nodiscard]] constexpr DropFrameMode drop_frame_mode() const noexcept {
-        return drop_mode_;
-    }
+    [[nodiscard]] constexpr DropFrameMode drop_frame_mode() const noexcept { return drop_mode_; }
 
     [[nodiscard]] constexpr bool is_drop_frame() const noexcept {
         return drop_mode_ == DropFrameMode::Drop;

@@ -41,12 +41,8 @@ struct Uint128 {
 
 }  // namespace
 
-Result<std::int64_t> mul_div(
-    std::int64_t a,
-    std::int64_t b,
-    std::int64_t c,
-    RoundingMode mode
-) noexcept {
+Result<std::int64_t> mul_div(std::int64_t a, std::int64_t b, std::int64_t c,
+                             RoundingMode mode) noexcept {
     if (c == 0) {
         return make_error(ErrorCode::InvalidArgument, "Division by zero in mul_div");
     }
@@ -64,10 +60,12 @@ Result<std::int64_t> mul_div(
     std::uint64_t rem = 0;
 
 #if defined(__SIZEOF_INT128__)
-    const unsigned __int128 p = static_cast<unsigned __int128>(ua) * static_cast<unsigned __int128>(ub);
+    const unsigned __int128 p =
+        static_cast<unsigned __int128>(ua) * static_cast<unsigned __int128>(ub);
     const unsigned __int128 q_128 = p / qc;
     if (q_128 > 0x8000000000000000ULL) {
-        return make_error(ErrorCode::Overflow, "mul_div intermediate quotient exceeds 64-bit signed magnitude");
+        return make_error(ErrorCode::Overflow,
+                          "mul_div intermediate quotient exceeds 64-bit signed magnitude");
     }
     q_trunc = static_cast<std::uint64_t>(q_128);
     rem = static_cast<std::uint64_t>(p % qc);
@@ -75,19 +73,22 @@ Result<std::int64_t> mul_div(
     unsigned __int64 hi = 0;
     const unsigned __int64 lo = _umul128(ua, ub, &hi);
     if (hi >= qc) {
-        return make_error(ErrorCode::Overflow, "mul_div intermediate quotient exceeds 64-bit unsigned capacity");
+        return make_error(ErrorCode::Overflow,
+                          "mul_div intermediate quotient exceeds 64-bit unsigned capacity");
     }
     unsigned __int64 rem_val = 0;
     const unsigned __int64 q_val = _udiv128(hi, lo, qc, &rem_val);
     if (q_val > 0x8000000000000000ULL) {
-        return make_error(ErrorCode::Overflow, "mul_div intermediate quotient exceeds 64-bit signed magnitude");
+        return make_error(ErrorCode::Overflow,
+                          "mul_div intermediate quotient exceeds 64-bit signed magnitude");
     }
     q_trunc = q_val;
     rem = rem_val;
 #else
     const Uint128 prod = mul64(ua, ub);
     if (prod.hi >= qc) {
-        return make_error(ErrorCode::Overflow, "mul_div intermediate quotient exceeds 64-bit unsigned capacity");
+        return make_error(ErrorCode::Overflow,
+                          "mul_div intermediate quotient exceeds 64-bit unsigned capacity");
     }
     if (prod.hi == 0) {
         q_trunc = prod.lo / qc;
@@ -96,7 +97,8 @@ Result<std::int64_t> mul_div(
         rem = prod.hi;
         for (int i = 63; i >= 0; --i) {
             const std::uint64_t next_bit = (prod.lo >> static_cast<unsigned>(i)) & 1ULL;
-            const bool overflow_or_ge = (rem >= 0x8000000000000000ULL) || (((rem << 1) | next_bit) >= qc);
+            const bool overflow_or_ge =
+                (rem >= 0x8000000000000000ULL) || (((rem << 1) | next_bit) >= qc);
             if (overflow_or_ge) {
                 q_trunc |= (1ULL << static_cast<unsigned>(i));
                 rem = (((rem << 1) | next_bit) - qc);
@@ -106,7 +108,8 @@ Result<std::int64_t> mul_div(
         }
     }
     if (q_trunc > 0x8000000000000000ULL) {
-        return make_error(ErrorCode::Overflow, "mul_div intermediate quotient exceeds 64-bit signed magnitude");
+        return make_error(ErrorCode::Overflow,
+                          "mul_div intermediate quotient exceeds 64-bit signed magnitude");
     }
 #endif
 
@@ -136,7 +139,8 @@ Result<std::int64_t> mul_div(
     }
 
     if (q_trunc > 0x8000000000000000ULL) {
-        return make_error(ErrorCode::Overflow, "mul_div negative result exceeds int64 minimum magnitude");
+        return make_error(ErrorCode::Overflow,
+                          "mul_div negative result exceeds int64 minimum magnitude");
     }
     if (q_trunc == 0x8000000000000000ULL) {
         return INT64_MIN;

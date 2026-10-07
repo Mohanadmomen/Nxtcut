@@ -38,12 +38,9 @@ std::string Uuid::to_string() const {
         "{:02x}{:02x}-"
         "{:02x}{:02x}-"
         "{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}",
-        bytes_[0], bytes_[1], bytes_[2], bytes_[3],
-        bytes_[4], bytes_[5],
-        bytes_[6], bytes_[7],
-        bytes_[8], bytes_[9],
-        bytes_[10], bytes_[11], bytes_[12], bytes_[13], bytes_[14], bytes_[15]
-    );
+        bytes_[0], bytes_[1], bytes_[2], bytes_[3], bytes_[4], bytes_[5], bytes_[6], bytes_[7],
+        bytes_[8], bytes_[9], bytes_[10], bytes_[11], bytes_[12], bytes_[13], bytes_[14],
+        bytes_[15]);
 }
 
 Result<Uuid> Uuid::parse(std::string_view str) {
@@ -55,34 +52,26 @@ Result<Uuid> Uuid::parse(std::string_view str) {
     }
 
     std::array<std::uint8_t, 16> bytes{};
-    if (!parse_byte(str[0], str[1], bytes[0]) ||
-        !parse_byte(str[2], str[3], bytes[1]) ||
-        !parse_byte(str[4], str[5], bytes[2]) ||
-        !parse_byte(str[6], str[7], bytes[3])) {
+    if (!parse_byte(str[0], str[1], bytes[0]) || !parse_byte(str[2], str[3], bytes[1]) ||
+        !parse_byte(str[4], str[5], bytes[2]) || !parse_byte(str[6], str[7], bytes[3])) {
         return make_error(ErrorCode::InvalidArgument, "Invalid hex digit in UUID segment 1");
     }
 
-    if (!parse_byte(str[9], str[10], bytes[4]) ||
-        !parse_byte(str[11], str[12], bytes[5])) {
+    if (!parse_byte(str[9], str[10], bytes[4]) || !parse_byte(str[11], str[12], bytes[5])) {
         return make_error(ErrorCode::InvalidArgument, "Invalid hex digit in UUID segment 2");
     }
 
-    if (!parse_byte(str[14], str[15], bytes[6]) ||
-        !parse_byte(str[16], str[17], bytes[7])) {
+    if (!parse_byte(str[14], str[15], bytes[6]) || !parse_byte(str[16], str[17], bytes[7])) {
         return make_error(ErrorCode::InvalidArgument, "Invalid hex digit in UUID segment 3");
     }
 
-    if (!parse_byte(str[19], str[20], bytes[8]) ||
-        !parse_byte(str[21], str[22], bytes[9])) {
+    if (!parse_byte(str[19], str[20], bytes[8]) || !parse_byte(str[21], str[22], bytes[9])) {
         return make_error(ErrorCode::InvalidArgument, "Invalid hex digit in UUID segment 4");
     }
 
-    if (!parse_byte(str[24], str[25], bytes[10]) ||
-        !parse_byte(str[26], str[27], bytes[11]) ||
-        !parse_byte(str[28], str[29], bytes[12]) ||
-        !parse_byte(str[30], str[31], bytes[13]) ||
-        !parse_byte(str[32], str[33], bytes[14]) ||
-        !parse_byte(str[34], str[35], bytes[15])) {
+    if (!parse_byte(str[24], str[25], bytes[10]) || !parse_byte(str[26], str[27], bytes[11]) ||
+        !parse_byte(str[28], str[29], bytes[12]) || !parse_byte(str[30], str[31], bytes[13]) ||
+        !parse_byte(str[32], str[33], bytes[14]) || !parse_byte(str[34], str[35], bytes[15])) {
         return make_error(ErrorCode::InvalidArgument, "Invalid hex digit in UUID segment 5");
     }
 
@@ -91,12 +80,12 @@ Result<Uuid> Uuid::parse(std::string_view str) {
 
 UuidGenerator::UuidGenerator() {
     std::random_device rd;
-    const std::uint64_t seed = (static_cast<std::uint64_t>(rd()) << 32) | static_cast<std::uint64_t>(rd());
+    const std::uint64_t seed =
+        (static_cast<std::uint64_t>(rd()) << 32) | static_cast<std::uint64_t>(rd());
     engine_.seed(seed);
 }
 
-UuidGenerator::UuidGenerator(std::uint64_t seed)
-    : engine_(seed) {}
+UuidGenerator::UuidGenerator(std::uint64_t seed) : engine_(seed) {}
 
 Uuid UuidGenerator::generate() {
     std::array<std::uint8_t, 16> bytes{};

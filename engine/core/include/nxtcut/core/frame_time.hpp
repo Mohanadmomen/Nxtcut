@@ -19,9 +19,7 @@ class FrameIndex {
 public:
     explicit constexpr FrameIndex(std::int64_t val = 0) noexcept : value_(val) {}
 
-    [[nodiscard]] constexpr std::int64_t value() const noexcept {
-        return value_;
-    }
+    [[nodiscard]] constexpr std::int64_t value() const noexcept { return value_; }
 
     [[nodiscard]] constexpr auto operator<=>(const FrameIndex&) const noexcept = default;
     [[nodiscard]] constexpr bool operator==(const FrameIndex&) const noexcept = default;
@@ -30,7 +28,8 @@ public:
         return FrameIndex(value_ + offset);
     }
 
-    [[nodiscard]] friend constexpr FrameIndex operator+(std::int64_t offset, FrameIndex idx) noexcept {
+    [[nodiscard]] friend constexpr FrameIndex operator+(std::int64_t offset,
+                                                        FrameIndex idx) noexcept {
         return FrameIndex(idx.value_ + offset);
     }
 
@@ -89,11 +88,8 @@ private:
 /**
  * @brief Converts master timeline time ticks to a discrete frame index using specified rounding.
  */
-[[nodiscard]] Result<FrameIndex> time_to_frame(
-    TimePoint time,
-    FrameRate rate,
-    RoundingMode mode
-) noexcept;
+[[nodiscard]] Result<FrameIndex> time_to_frame(TimePoint time, FrameRate rate,
+                                               RoundingMode mode) noexcept;
 
 /**
  * @brief Computes the exact duration in timeline ticks for a single frame at the given rate.
@@ -103,27 +99,18 @@ private:
 /**
  * @brief Snaps an arbitrary timeline timestamp to the nearest discrete frame boundary.
  */
-[[nodiscard]] Result<TimePoint> snap_to_frame(
-    TimePoint time,
-    FrameRate rate,
-    RoundingMode mode
-) noexcept;
+[[nodiscard]] Result<TimePoint> snap_to_frame(TimePoint time, FrameRate rate,
+                                              RoundingMode mode) noexcept;
 
 /**
  * @brief Converts an audio sample count to master timeline time ticks.
  */
-[[nodiscard]] Result<TimePoint> samples_to_time(
-    std::int64_t samples,
-    SampleRate rate
-) noexcept;
+[[nodiscard]] Result<TimePoint> samples_to_time(std::int64_t samples, SampleRate rate) noexcept;
 
 /**
  * @brief Converts master timeline time ticks to an audio sample count using specified rounding.
  */
-[[nodiscard]] Result<std::int64_t> time_to_samples(
-    TimePoint time,
-    SampleRate rate,
-    RoundingMode mode
-) noexcept;
+[[nodiscard]] Result<std::int64_t> time_to_samples(TimePoint time, SampleRate rate,
+                                                   RoundingMode mode) noexcept;
 
 }  // namespace nxtcut::core

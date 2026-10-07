@@ -41,13 +41,9 @@ public:
         return TimePoint(static_cast<std::int64_t>(rounded));
     }
 
-    [[nodiscard]] static constexpr TimePoint zero() noexcept {
-        return TimePoint(0);
-    }
+    [[nodiscard]] static constexpr TimePoint zero() noexcept { return TimePoint(0); }
 
-    [[nodiscard]] constexpr std::int64_t ticks() const noexcept {
-        return ticks_;
-    }
+    [[nodiscard]] constexpr std::int64_t ticks() const noexcept { return ticks_; }
 
     [[nodiscard]] constexpr double to_seconds() const noexcept {
         return static_cast<double>(ticks_) / static_cast<double>(kTicksPerSecond);
@@ -89,13 +85,9 @@ public:
         return Duration(static_cast<std::int64_t>(rounded));
     }
 
-    [[nodiscard]] static constexpr Duration zero() noexcept {
-        return Duration(0);
-    }
+    [[nodiscard]] static constexpr Duration zero() noexcept { return Duration(0); }
 
-    [[nodiscard]] constexpr std::int64_t ticks() const noexcept {
-        return ticks_;
-    }
+    [[nodiscard]] constexpr std::int64_t ticks() const noexcept { return ticks_; }
 
     [[nodiscard]] constexpr double to_seconds() const noexcept {
         return static_cast<double>(ticks_) / static_cast<double>(kTicksPerSecond);
@@ -104,13 +96,9 @@ public:
     [[nodiscard]] constexpr auto operator<=>(const Duration&) const noexcept = default;
     [[nodiscard]] constexpr bool operator==(const Duration&) const noexcept = default;
 
-    [[nodiscard]] constexpr Duration operator+() const noexcept {
-        return *this;
-    }
+    [[nodiscard]] constexpr Duration operator+() const noexcept { return *this; }
 
-    [[nodiscard]] constexpr Duration operator-() const noexcept {
-        return Duration(-ticks_);
-    }
+    [[nodiscard]] constexpr Duration operator-() const noexcept { return Duration(-ticks_); }
 
     [[nodiscard]] constexpr Duration operator+(Duration other) const noexcept {
         return Duration(ticks_ + other.ticks_);
@@ -156,9 +144,7 @@ public:
         return Duration(ticks_ < 0 ? -ticks_ : ticks_);
     }
 
-    [[nodiscard]] friend constexpr Duration abs(Duration d) noexcept {
-        return d.abs();
-    }
+    [[nodiscard]] friend constexpr Duration abs(Duration d) noexcept { return d.abs(); }
 
 private:
     explicit constexpr Duration(std::int64_t ticks) noexcept : ticks_(ticks) {}
@@ -211,17 +197,11 @@ public:
      */
     [[nodiscard]] static Result<TimeRange> from_start_end(TimePoint start, TimePoint end);
 
-    [[nodiscard]] constexpr TimePoint start() const noexcept {
-        return start_;
-    }
+    [[nodiscard]] constexpr TimePoint start() const noexcept { return start_; }
 
-    [[nodiscard]] constexpr Duration duration() const noexcept {
-        return duration_;
-    }
+    [[nodiscard]] constexpr Duration duration() const noexcept { return duration_; }
 
-    [[nodiscard]] constexpr TimePoint end() const noexcept {
-        return start_ + duration_;
-    }
+    [[nodiscard]] constexpr TimePoint end() const noexcept { return start_ + duration_; }
 
     /**
      * @brief Tests whether this interval contains the given point (start inclusive, end exclusive).
@@ -261,8 +241,7 @@ public:
     [[nodiscard]] constexpr bool operator==(const TimeRange&) const noexcept = default;
 
 private:
-    constexpr TimeRange(TimePoint start, Duration d) noexcept
-        : start_(start), duration_(d) {}
+    constexpr TimeRange(TimePoint start, Duration d) noexcept : start_(start), duration_(d) {}
 
     TimePoint start_{TimePoint::zero()};
     Duration duration_{Duration::zero()};

@@ -1,12 +1,12 @@
 #include <nxtcut/core/id.hpp>
 #include <nxtcut/core/uuid.hpp>
 
-#include "compile_checks.hpp"
-
 #include <gtest/gtest.h>
 
 #include <type_traits>
 #include <unordered_set>
+
+#include "compile_checks.hpp"
 
 namespace nxtcut::core {
 namespace {
@@ -21,9 +21,12 @@ using ClipId = Id<ClipTag>;
 using TrackId = Id<TrackTag>;
 
 // Compile-time static assertions proving strong type distinction between Id<A> and Id<B>
-static_assert(!std::is_convertible_v<ClipId, TrackId>, "Id<A> must not implicitly convert to Id<B>");
-static_assert(!std::is_convertible_v<TrackId, ClipId>, "Id<B> must not implicitly convert to Id<A>");
-static_assert(!std::is_constructible_v<ClipId, TrackId>, "Id<A> must not be constructible from Id<B>");
+static_assert(!std::is_convertible_v<ClipId, TrackId>,
+              "Id<A> must not implicitly convert to Id<B>");
+static_assert(!std::is_convertible_v<TrackId, ClipId>,
+              "Id<B> must not implicitly convert to Id<A>");
+static_assert(!std::is_constructible_v<ClipId, TrackId>,
+              "Id<A> must not be constructible from Id<B>");
 static_assert(!std::is_assignable_v<ClipId&, TrackId>, "Id<A> must not be assignable from Id<B>");
 static_assert(!CanEqual<ClipId, TrackId>);
 static_assert(!CanOrder<ClipId, TrackId>);

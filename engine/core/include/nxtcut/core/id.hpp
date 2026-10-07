@@ -24,21 +24,13 @@ public:
 
     explicit constexpr Id(Uuid u) noexcept : uuid_(u) {}
 
-    [[nodiscard]] static constexpr Id nil() noexcept {
-        return Id(Uuid::nil());
-    }
+    [[nodiscard]] static constexpr Id nil() noexcept { return Id(Uuid::nil()); }
 
-    [[nodiscard]] constexpr const Uuid& uuid() const noexcept {
-        return uuid_;
-    }
+    [[nodiscard]] constexpr const Uuid& uuid() const noexcept { return uuid_; }
 
-    [[nodiscard]] constexpr bool is_nil() const noexcept {
-        return uuid_.is_nil();
-    }
+    [[nodiscard]] constexpr bool is_nil() const noexcept { return uuid_.is_nil(); }
 
-    [[nodiscard]] std::string to_string() const {
-        return uuid_.to_string();
-    }
+    [[nodiscard]] std::string to_string() const { return uuid_.to_string(); }
 
     [[nodiscard]] constexpr auto operator<=>(const Id&) const noexcept = default;
     [[nodiscard]] constexpr bool operator==(const Id&) const noexcept = default;

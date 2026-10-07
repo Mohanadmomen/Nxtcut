@@ -14,8 +14,9 @@ struct FrameRateInternalAccess;
 /**
  * @brief Represents a rational frame rate specified as a positive numerator and denominator.
  *
- * All FrameRate instances created via create() are reduced to simplest fractional form using std::gcd.
- * Comparisons are computed using exact 64-bit cross-multiplication with no floating-point inaccuracies.
+ * All FrameRate instances created via create() are reduced to simplest fractional form using
+ * std::gcd. Comparisons are computed using exact 64-bit cross-multiplication with no floating-point
+ * inaccuracies.
  *
  * @note Thread safety: Thread-safe (immutable value type).
  */
@@ -26,13 +27,9 @@ public:
      */
     [[nodiscard]] static Result<FrameRate> create(std::int32_t num, std::int32_t den);
 
-    [[nodiscard]] constexpr std::int32_t numerator() const noexcept {
-        return numerator_;
-    }
+    [[nodiscard]] constexpr std::int32_t numerator() const noexcept { return numerator_; }
 
-    [[nodiscard]] constexpr std::int32_t denominator() const noexcept {
-        return denominator_;
-    }
+    [[nodiscard]] constexpr std::int32_t denominator() const noexcept { return denominator_; }
 
     [[nodiscard]] constexpr double to_double() const noexcept {
         return static_cast<double>(numerator_) / static_cast<double>(denominator_);
@@ -48,18 +45,16 @@ public:
      */
     [[nodiscard]] constexpr std::int32_t nominal_fps() const noexcept {
         return static_cast<std::int32_t>(
-            (static_cast<std::int64_t>(numerator_) + denominator_ / 2) / denominator_
-        );
+            (static_cast<std::int64_t>(numerator_) + denominator_ / 2) / denominator_);
     }
 
     /**
      * @brief Checks if this is an NTSC standard rate (denominator == 1001).
      */
-    [[nodiscard]] constexpr bool is_ntsc() const noexcept {
-        return denominator_ == 1001;
-    }
+    [[nodiscard]] constexpr bool is_ntsc() const noexcept { return denominator_ == 1001; }
 
-    [[nodiscard]] constexpr std::strong_ordering operator<=>(const FrameRate& other) const noexcept {
+    [[nodiscard]] constexpr std::strong_ordering operator<=>(
+        const FrameRate& other) const noexcept {
         const std::int64_t lhs = static_cast<std::int64_t>(numerator_) * other.denominator_;
         const std::int64_t rhs = static_cast<std::int64_t>(other.numerator_) * denominator_;
         return lhs <=> rhs;
@@ -115,9 +110,7 @@ public:
      */
     [[nodiscard]] static Result<SampleRate> create(std::int32_t value);
 
-    [[nodiscard]] constexpr std::int32_t value() const noexcept {
-        return value_;
-    }
+    [[nodiscard]] constexpr std::int32_t value() const noexcept { return value_; }
 
     [[nodiscard]] constexpr auto operator<=>(const SampleRate&) const noexcept = default;
     [[nodiscard]] constexpr bool operator==(const SampleRate&) const noexcept = default;
@@ -131,9 +124,7 @@ private:
 };
 
 struct SampleRateInternalAccess {
-    static constexpr SampleRate make(std::int32_t value) noexcept {
-        return SampleRate(value);
-    }
+    static constexpr SampleRate make(std::int32_t value) noexcept { return SampleRate(value); }
 };
 
 namespace sample_rates {

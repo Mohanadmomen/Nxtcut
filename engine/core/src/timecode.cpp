@@ -4,11 +4,8 @@
 
 namespace nxtcut::core {
 
-Result<Timecode> Timecode::from_frame(
-    FrameIndex frame,
-    FrameRate rate,
-    DropFrameMode drop_mode
-) noexcept {
+Result<Timecode> Timecode::from_frame(FrameIndex frame, FrameRate rate,
+                                      DropFrameMode drop_mode) noexcept {
     if (frame.value() < 0) {
         return make_error(ErrorCode::OutOfRange, "Timecode frame index must be non-negative");
     }
@@ -25,13 +22,13 @@ Result<Timecode> Timecode::from_frame(
         } else if (rate.numerator() == 60000 && rate.denominator() == 1001) {
             drop_count = 4;
         } else {
-            return make_error(
-                ErrorCode::Unsupported,
-                "Drop-frame timecode is only supported for 29.97 (30000/1001) and 59.94 (60000/1001) fps"
-            );
+            return make_error(ErrorCode::Unsupported,
+                              "Drop-frame timecode is only supported for 29.97 (30000/1001) and "
+                              "59.94 (60000/1001) fps");
         }
 
-        const std::int64_t frames_per_10min = 10 * 60 * static_cast<std::int64_t>(nominal) - 9 * drop_count;
+        const std::int64_t frames_per_10min =
+            10 * 60 * static_cast<std::int64_t>(nominal) - 9 * drop_count;
         const std::int64_t frames_per_min = 60 * static_cast<std::int64_t>(nominal) - drop_count;
         const std::int64_t nominal_frames_min0 = 60 * static_cast<std::int64_t>(nominal);
 
@@ -78,7 +75,8 @@ Result<FrameIndex> Timecode::to_frame(FrameRate rate) const noexcept {
         return make_error(ErrorCode::InvalidArgument, "Timecode frames field exceeds nominal fps");
     }
     if (minutes_ >= 60 || seconds_ >= 60) {
-        return make_error(ErrorCode::InvalidArgument, "Timecode minutes or seconds field exceeds 59");
+        return make_error(ErrorCode::InvalidArgument,
+                          "Timecode minutes or seconds field exceeds 59");
     }
 
     if (drop_mode_ == DropFrameMode::Drop) {
@@ -88,30 +86,27 @@ Result<FrameIndex> Timecode::to_frame(FrameRate rate) const noexcept {
         } else if (rate.numerator() == 60000 && rate.denominator() == 1001) {
             drop_count = 4;
         } else {
-            return make_error(
-                ErrorCode::Unsupported,
-                "Drop-frame timecode is only supported for 29.97 (30000/1001) and 59.94 (60000/1001) fps"
-            );
+            return make_error(ErrorCode::Unsupported,
+                              "Drop-frame timecode is only supported for 29.97 (30000/1001) and "
+                              "59.94 (60000/1001) fps");
         }
 
-        if ((minutes_ % 10 != 0) && (seconds_ == 0) && (frames_ < static_cast<std::uint32_t>(drop_count))) {
+        if ((minutes_ % 10 != 0) && (seconds_ == 0) &&
+            (frames_ < static_cast<std::uint32_t>(drop_count))) {
             return make_error(
                 ErrorCode::InvalidArgument,
-                "Timecode refers to a dropped frame label that does not exist in drop-frame mode"
-            );
+                "Timecode refers to a dropped frame label that does not exist in drop-frame mode");
         }
 
         const std::int64_t total_minutes = static_cast<std::int64_t>(hours_) * 60 + minutes_;
-        const std::int64_t nominal_frames =
-            ((total_minutes * 60) + seconds_) * nominal + frames_;
+        const std::int64_t nominal_frames = ((total_minutes * 60) + seconds_) * nominal + frames_;
         const std::int64_t dropped_frames =
             (total_minutes / 10) * (9 * drop_count) + (total_minutes % 10) * drop_count;
 
         return FrameIndex(nominal_frames - dropped_frames);
     } else {
         const std::int64_t total_minutes = static_cast<std::int64_t>(hours_) * 60 + minutes_;
-        const std::int64_t total_frames =
-            ((total_minutes * 60) + seconds_) * nominal + frames_;
+        const std::int64_t total_frames = ((total_minutes * 60) + seconds_) * nominal + frames_;
         return FrameIndex(total_frames);
     }
 }
@@ -123,10 +118,8 @@ std::string Timecode::to_string() const {
 
 Result<Timecode> Timecode::parse(std::string_view str, FrameRate rate) {
     if (str.size() != 11) {
-        return make_error(
-            ErrorCode::InvalidArgument,
-            "Timecode string must be 11 characters (HH:MM:SS:FF or HH:MM:SS;FF)"
-        );
+        return make_error(ErrorCode::InvalidArgument,
+                          "Timecode string must be 11 characters (HH:MM:SS:FF or HH:MM:SS;FF)");
     }
     if (str[2] != ':' || str[5] != ':') {
         return make_error(ErrorCode::InvalidArgument, "Invalid delimiter in timecode string");
@@ -149,20 +142,21 @@ Result<Timecode> Timecode::parse(std::string_view str, FrameRate rate) {
     std::uint32_t mm = 0;
     std::uint32_t ss = 0;
     std::uint32_t ff = 0;
-    if (!parse2digits(str[0], str[1], hh) ||
-        !parse2digits(str[3], str[4], mm) ||
-        !parse2digits(str[6], str[7], ss) ||
-        !parse2digits(str[9], str[10], ff)) {
-        return make_error(ErrorCode::InvalidArgument, "Timecode fields must contain decimal digits");
+    if (!parse2digits(str[0], str[1], hh) || !parse2digits(str[3], str[4], mm) ||
+        !parse2digits(str[6], str[7], ss) || !parse2digits(str[9], str[10], ff)) {
+        return make_error(ErrorCode::InvalidArgument,
+                          "Timecode fields must contain decimal digits");
     }
 
     if (mm >= 60 || ss >= 60) {
-        return make_error(ErrorCode::InvalidArgument, "Timecode minutes or seconds out of range [0, 59]");
+        return make_error(ErrorCode::InvalidArgument,
+                          "Timecode minutes or seconds out of range [0, 59]");
     }
 
     const std::int32_t nominal = rate.nominal_fps();
     if (ff >= static_cast<std::uint32_t>(nominal)) {
-        return make_error(ErrorCode::InvalidArgument, "Timecode frames out of range for rate nominal fps");
+        return make_error(ErrorCode::InvalidArgument,
+                          "Timecode frames out of range for rate nominal fps");
     }
 
     if (mode == DropFrameMode::Drop) {
@@ -174,15 +168,13 @@ Result<Timecode> Timecode::parse(std::string_view str, FrameRate rate) {
         } else {
             return make_error(
                 ErrorCode::Unsupported,
-                "Drop-frame is only supported for 29.97 (30000/1001) and 59.94 (60000/1001) fps"
-            );
+                "Drop-frame is only supported for 29.97 (30000/1001) and 59.94 (60000/1001) fps");
         }
 
         if ((mm % 10 != 0) && (ss == 0) && (ff < static_cast<std::uint32_t>(drop_count))) {
             return make_error(
                 ErrorCode::InvalidArgument,
-                "Timecode specifies a dropped frame label that does not exist in drop-frame mode"
-            );
+                "Timecode specifies a dropped frame label that does not exist in drop-frame mode");
         }
     }
 

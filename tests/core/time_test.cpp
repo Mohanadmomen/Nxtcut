@@ -1,11 +1,11 @@
 #include <nxtcut/core/time.hpp>
 
-#include "compile_checks.hpp"
-
 #include <gtest/gtest.h>
 
 #include <cstdint>
 #include <type_traits>
+
+#include "compile_checks.hpp"
 
 namespace nxtcut::core {
 namespace {
@@ -27,10 +27,14 @@ static_assert(CanSubtract<TimePoint, Duration>);
 static_assert(CanSubtract<TimePoint, TimePoint>);
 static_assert(CanAdd<Duration, Duration>);
 static_assert(CanSubtract<Duration, Duration>);
-static_assert(!std::is_convertible_v<TimePoint, std::int64_t>, "TimePoint must not implicitly convert to int64");
-static_assert(!std::is_convertible_v<std::int64_t, TimePoint>, "int64 must not implicitly convert to TimePoint");
-static_assert(!std::is_convertible_v<Duration, std::int64_t>, "Duration must not implicitly convert to int64");
-static_assert(!std::is_convertible_v<std::int64_t, Duration>, "int64 must not implicitly convert to Duration");
+static_assert(!std::is_convertible_v<TimePoint, std::int64_t>,
+              "TimePoint must not implicitly convert to int64");
+static_assert(!std::is_convertible_v<std::int64_t, TimePoint>,
+              "int64 must not implicitly convert to TimePoint");
+static_assert(!std::is_convertible_v<Duration, std::int64_t>,
+              "Duration must not implicitly convert to int64");
+static_assert(!std::is_convertible_v<std::int64_t, Duration>,
+              "int64 must not implicitly convert to Duration");
 
 // Constexpr evaluation tests
 constexpr Duration kConstDuration = Duration::from_ticks(100);
@@ -129,31 +133,40 @@ TEST(TimeTest, TimeRangeContainsPoint) {
     EXPECT_TRUE(r.contains(TimePoint::from_ticks(100)));  // start inclusive
     EXPECT_TRUE(r.contains(TimePoint::from_ticks(125)));
     EXPECT_TRUE(r.contains(TimePoint::from_ticks(149)));
-    EXPECT_FALSE(r.contains(TimePoint::from_ticks(150))); // end exclusive
+    EXPECT_FALSE(r.contains(TimePoint::from_ticks(150)));  // end exclusive
     EXPECT_FALSE(r.contains(TimePoint::from_ticks(151)));
 }
 
 TEST(TimeTest, TimeRangeContainsRange) {
-    const auto outer = TimeRange::create(TimePoint::from_ticks(100), Duration::from_ticks(100)).value(); // [100, 200)
+    const auto outer = TimeRange::create(TimePoint::from_ticks(100), Duration::from_ticks(100))
+                           .value();  // [100, 200)
 
-    const auto inner = TimeRange::create(TimePoint::from_ticks(120), Duration::from_ticks(50)).value();  // [120, 170)
+    const auto inner = TimeRange::create(TimePoint::from_ticks(120), Duration::from_ticks(50))
+                           .value();  // [120, 170)
     EXPECT_TRUE(outer.contains(inner));
 
-    const auto same = TimeRange::create(TimePoint::from_ticks(100), Duration::from_ticks(100)).value();
+    const auto same =
+        TimeRange::create(TimePoint::from_ticks(100), Duration::from_ticks(100)).value();
     EXPECT_TRUE(outer.contains(same));
 
-    const auto left_overlap = TimeRange::create(TimePoint::from_ticks(90), Duration::from_ticks(30)).value();
+    const auto left_overlap =
+        TimeRange::create(TimePoint::from_ticks(90), Duration::from_ticks(30)).value();
     EXPECT_FALSE(outer.contains(left_overlap));
 
-    const auto right_overlap = TimeRange::create(TimePoint::from_ticks(180), Duration::from_ticks(30)).value();
+    const auto right_overlap =
+        TimeRange::create(TimePoint::from_ticks(180), Duration::from_ticks(30)).value();
     EXPECT_FALSE(outer.contains(right_overlap));
 }
 
 TEST(TimeTest, TimeRangeOverlapsTouchingRangesDoNotOverlap) {
-    const auto r1 = TimeRange::create(TimePoint::from_ticks(0), Duration::from_ticks(100)).value();   // [0, 100)
-    const auto r2 = TimeRange::create(TimePoint::from_ticks(100), Duration::from_ticks(100)).value(); // [100, 200)
-    const auto r3 = TimeRange::create(TimePoint::from_ticks(99), Duration::from_ticks(100)).value();  // [99, 199)
-    const auto r_disjoint = TimeRange::create(TimePoint::from_ticks(200), Duration::from_ticks(50)).value();
+    const auto r1 =
+        TimeRange::create(TimePoint::from_ticks(0), Duration::from_ticks(100)).value();  // [0, 100)
+    const auto r2 = TimeRange::create(TimePoint::from_ticks(100), Duration::from_ticks(100))
+                        .value();  // [100, 200)
+    const auto r3 = TimeRange::create(TimePoint::from_ticks(99), Duration::from_ticks(100))
+                        .value();  // [99, 199)
+    const auto r_disjoint =
+        TimeRange::create(TimePoint::from_ticks(200), Duration::from_ticks(50)).value();
 
     // Touching ranges must NOT overlap
     EXPECT_FALSE(r1.overlaps(r2));
@@ -168,10 +181,14 @@ TEST(TimeTest, TimeRangeOverlapsTouchingRangesDoNotOverlap) {
 }
 
 TEST(TimeTest, TimeRangeIntersection) {
-    const auto r1 = TimeRange::create(TimePoint::from_ticks(0), Duration::from_ticks(100)).value();   // [0, 100)
-    const auto r2 = TimeRange::create(TimePoint::from_ticks(50), Duration::from_ticks(100)).value();  // [50, 150)
-    const auto r_touching = TimeRange::create(TimePoint::from_ticks(100), Duration::from_ticks(50)).value();
-    const auto r_disjoint = TimeRange::create(TimePoint::from_ticks(150), Duration::from_ticks(50)).value();
+    const auto r1 =
+        TimeRange::create(TimePoint::from_ticks(0), Duration::from_ticks(100)).value();  // [0, 100)
+    const auto r2 = TimeRange::create(TimePoint::from_ticks(50), Duration::from_ticks(100))
+                        .value();  // [50, 150)
+    const auto r_touching =
+        TimeRange::create(TimePoint::from_ticks(100), Duration::from_ticks(50)).value();
+    const auto r_disjoint =
+        TimeRange::create(TimePoint::from_ticks(150), Duration::from_ticks(50)).value();
 
     const auto inter12 = r1.intersection(r2);
     ASSERT_TRUE(inter12.has_value());

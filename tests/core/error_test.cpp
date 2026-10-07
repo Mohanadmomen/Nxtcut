@@ -61,9 +61,7 @@ TEST(ErrorTest, ErrorCodeToStringCoverage) {
 }
 
 TEST(ResultTest, ResultSuccessAndFailure) {
-    const auto compute_success = []() -> Result<int> {
-        return 123;
-    };
+    const auto compute_success = []() -> Result<int> { return 123; };
     const auto compute_failure = []() -> Result<int> {
         return make_error(ErrorCode::OutOfRange, "value too large");
     };
@@ -79,9 +77,7 @@ TEST(ResultTest, ResultSuccessAndFailure) {
 }
 
 TEST(ResultTest, StatusVoidResult) {
-    const auto op_ok = []() -> Status {
-        return {};
-    };
+    const auto op_ok = []() -> Status { return {}; };
     const auto op_fail = []() -> Status {
         return make_error(ErrorCode::Cancelled, "user cancelled");
     };

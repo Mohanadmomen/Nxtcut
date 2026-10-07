@@ -22,8 +22,7 @@ class Uuid {
 public:
     constexpr Uuid() noexcept = default;
 
-    explicit constexpr Uuid(const std::array<std::uint8_t, 16>& bytes) noexcept
-        : bytes_(bytes) {}
+    explicit constexpr Uuid(const std::array<std::uint8_t, 16>& bytes) noexcept : bytes_(bytes) {}
 
     /**
      * @brief Returns a nil (all-zeros) UUID.
@@ -100,9 +99,7 @@ public:
     /**
      * @brief Function call operator alias for generate().
      */
-    [[nodiscard]] Uuid operator()() {
-        return generate();
-    }
+    [[nodiscard]] Uuid operator()() { return generate(); }
 
 private:
     std::mutex mutex_;

@@ -2,11 +2,11 @@
 
 #include <nxtcut/core/error.hpp>
 
-#include <tl/expected.hpp>
-
 #include <string>
 #include <string_view>
 #include <utility>
+
+#include <tl/expected.hpp>
 
 namespace nxtcut::core {
 

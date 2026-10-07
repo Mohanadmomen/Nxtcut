@@ -101,7 +101,8 @@ TEST(MulDivTest, OverflowDetection) {
     EXPECT_EQ(res2.error().code(), ErrorCode::Overflow);
 
     // Large square with small divisor
-    const auto res3 = mul_div(1'000'000'000'000'000'000LL, 1'000'000'000'000'000'000LL, 1, RoundingMode::Nearest);
+    const auto res3 =
+        mul_div(1'000'000'000'000'000'000LL, 1'000'000'000'000'000'000LL, 1, RoundingMode::Nearest);
     ASSERT_FALSE(res3.has_value());
     EXPECT_EQ(res3.error().code(), ErrorCode::Overflow);
 }
