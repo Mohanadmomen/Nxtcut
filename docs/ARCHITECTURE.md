@@ -28,6 +28,43 @@ Core module components:
 - **Conversions (`frame_time.hpp`)**: Discrete `FrameIndex` conversions (`frame_to_time`, `time_to_frame`, `snap_to_frame`, `samples_to_time`, `time_to_samples`) with zero accumulated drift.
 - **Timecode (`timecode.hpp`)**: SMPTE timecode supporting non-drop and drop-frame accounting (for 29.97 and 59.94 fps), parsing, formatting, and frame index round-tripping.
 - **Identifiers (`uuid.hpp`, `id.hpp`)**: RFC 4122 version-4 `Uuid`, thread-safe `UuidGenerator`, and type-safe `Id<Tag>` strong entity handles.
+- **Logging Subsystem (`log_level.hpp`, `log_sink.hpp`, `log_format.hpp`, `logger.hpp`, `console_sink.hpp`, `file_sink.hpp`, `memory_sink.hpp`)**: Hierarchical, non-global, dependency-injected logging. Callers construct and pass `Logger` instances configured with `LogLevel` and shared `LogSink` implementations (`ConsoleSink`, `FileSink`, `MemorySink`). Deterministic civil calendar line formatting (`format_log_line()`) using integer floor arithmetic.
+- **Cancellation Model (`cancellation.hpp`)**: Cooperative, one-shot cancellation primitives. `CancellationSource` owns exclusive cancellation lifecycle with release-store semantics, issuing cheap copyable `CancellationToken` handles observing state with acquire-load semantics.
+- **Move-Only Tasks (`unique_task.hpp`)**: Type-erased, move-only zero-argument callable wrapper enabling `std::packaged_task` and lambdas capturing `std::unique_ptr` without requiring copy construction.
+- **Thread Pool (`thread_pool.hpp`)**: Work-dispatching thread pool with prioritized FIFO scheduling (`High`, `Normal`, `Low`). Worker threads execute tasks from higher-priority queues first, catching exceptions through `std::packaged_task` futures without worker death, supporting cooperative `shutdown()` and `wait_idle()`.
+- **Spatial Geometry Primitives (`geometry.hpp`)**: Strongly constrained `Point<T>`, `Size<T>`, and `Rect<T>` templates over arithmetic types. Half-open `[left, right)` and `[top, bottom)` intervals, with non-overlapping touching edge semantics, bounding box unions, and aspect-ratio helpers (`fit_inside`, `fill_outside`, `letterbox_rect`).
+- **Affine Transformations (`affine_transform.hpp`)**: Column-vector 2D affine transform matrix with explicit composition chaining (`t.then(n)` applies `t` first, then `n`), point and bounding-box rect application, determinant, and numerical inversion.
+- **Color Pipeline (`color.hpp`)**: Straight-alpha `Color` and separate `PremultipliedColor` types to prevent unintended alpha blending bugs. Full hex string parsing and formatting, component-wise interpolation (`lerp`), and exact IEC 61966-2-1 sRGB $\leftrightarrow$ Linear transfer function conversions.
+
+#### Core Subsystem Design Models
+
+##### Logging Model
+The logging subsystem strictly prohibits global mutable state and singletons. Loggers are explicit objects instantiated by callers and injected into dependent components.
+- **Sinks (`LogSink`)**: Thread-safe abstract destinations receiving `LogRecord`. Multiple loggers share sinks safely via `std::shared_ptr`.
+- **Logger (`Logger`)**: Atomic minimum level filtering, child hierarchy naming (`<parent>.<child>`), immutable sink lists, and custom injected timestamps for deterministic testing.
+- **Sinks Provided**: `ConsoleSink` (unbuffered stream writing under mutex), `FileSink` (binary-mode appending/truncating with automatic flush on `Warn` or above), and `MemorySink` (bounded ring buffer feeding in-memory diagnostic snapshot inspection).
+
+##### Cancellation Model
+- Cooperative cancellation uses `CancellationSource` and `CancellationToken`.
+- `CancellationSource` represents an unmovable, uncopyable cancellation lifecycle domain. Calling `request_cancel()` is idempotent and publishes cancellation with release memory ordering.
+- `CancellationToken` is cheap and copyable, loading state with acquire memory ordering. A default-constructed token is valid and never cancelled. Tokens outlive sources safely via shared atomic state.
+
+##### Thread Pool & Prioritization
+- Fixed worker pool created via `ThreadPool::create(thread_count)`.
+- Implements three FIFO queues: `High`, `Normal`, and `Low`. Workers greedily drain `High` priority tasks before `Normal`, and `Normal` before `Low`. Tasks within the same priority level execute in strict FIFO order.
+- Tasks are submitted via `submit(f, priority)` which captures callables into `std::packaged_task` within `UniqueTask`. Exceptions are preserved in the returned `std::future`.
+- `shutdown()` is idempotent, finishes all currently queued tasks, rejects new submissions, and joins workers. `wait_idle()` blocks until all queues and worker threads are completely idle.
+
+##### Spatial Geometry & Affine Transforms
+- Geometry templates (`Point`, `Size`, `Rect`) enforce half-open interval semantics `[x, x + width)` and `[y, y + height)`. Touching boundaries do not intersect, and empty rectangles never contain points or overlap other rectangles.
+- `AffineTransform` uses column vectors ($\mathbf{x}' = \mathbf{M} \mathbf{x}$).
+- Composition order is explicitly defined by `t.then(n)`: transform `t` is applied first, followed by transform `n` (`t.then(n).apply(p) == n.apply(t.apply(p))`).
+- Positive rotation angles rotate the positive x-axis towards the positive y-axis (clockwise in top-left screen coordinates).
+
+##### Color Model
+- `Color` represents straight (un-premultiplied) RGBA color values with float channels nominally in $[0, 1]$.
+- `PremultipliedColor` represents $(r \cdot a, g \cdot a, b \cdot a, a)$ as a separate, non-implicitly-convertible type to guarantee that alpha blending occurs in premultiplied space.
+- Transfer functions `srgb_to_linear()` and `linear_to_srgb()` adhere to the standard piecewise IEC 61966-2-1 transfer curve with clamping.
 
 #### The NxtCut Time Model
 
