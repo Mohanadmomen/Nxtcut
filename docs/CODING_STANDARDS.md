@@ -9,6 +9,7 @@ These coding standards are mandatory across the entire codebase (both `engine/` 
 - **Standard**: Modern C++20 (`-std=c++20`).
 - **Header Guards**: `#pragma once` is mandatory at the beginning of every header.
 - **Portability**: No compiler-specific extensions (`__attribute__`, `#pragma omp`, MSVC `__declspec` without portability macros).
+- **Portable Fast Paths**: Every platform-specific fast path must have an always-compiled portable implementation and a test comparing the two.
 - **Compilation**: Code must compile warning-free with `-Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror` (GCC/Clang) and `/W4 /WX /permissive-` (MSVC).
 
 ---
