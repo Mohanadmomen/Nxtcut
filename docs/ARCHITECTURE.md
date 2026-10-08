@@ -22,7 +22,7 @@ Provides fundamental utility primitives, domain-specific math types, error handl
 
 Core module components:
 - **Error Modeling (`error.hpp`, `result.hpp`)**: `ErrorCode` enumeration and `Error` class providing context chaining (`with_context()`). Value-based `Result<T>` and `Status` (`tl::expected`) error returns with `make_error()` helper for zero-exception operational failure handling.
-- **Checked Arithmetic (`mul_div.hpp`)**: Portable `mul_div()` computing `round(a * b / c)` with a 128-bit intermediate (via `__int128`, MSVC x64 intrinsics `_umul128`/`_udiv128`, and a software fallback) and configurable rounding (`Floor`, `Nearest`, `Ceil`).
+- **Checked Arithmetic (`mul_div.hpp`, `mul_div_detail.hpp`)**: Portable `mul_div()` computing `round(a * b / c)` with a 128-bit intermediate (via `__int128`, MSVC x64 intrinsics `_umul128`/`_udiv128`, and a software fallback) and configurable rounding (`Floor`, `Nearest`, `Ceil`). The arithmetic subsystem provides a native fast path alongside an always-compiled portable path (`detail::mul_div_portable`). Automated unit tests continuously compare the two implementations against each other across edge cases and randomized vectors to guarantee identical results.
 - **Time Model (`time.hpp`)**: Strong types `TimePoint` and `Duration` based on an integer tick clock, and `TimeRange` half-open interval `[start, end)` math.
 - **Frame Rate & Sample Rate (`frame_rate.hpp`)**: Rational `FrameRate` with GCD reduction and exact fraction comparison, plus `SampleRate` for audio.
 - **Conversions (`frame_time.hpp`)**: Discrete `FrameIndex` conversions (`frame_to_time`, `time_to_frame`, `snap_to_frame`, `samples_to_time`, `time_to_samples`) with zero accumulated drift.

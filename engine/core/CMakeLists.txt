@@ -40,6 +40,7 @@ nxtcut_add_module(
         include/nxtcut/core/logger.hpp
         include/nxtcut/core/memory_sink.hpp
         include/nxtcut/core/mul_div.hpp
+        include/nxtcut/core/mul_div_detail.hpp
         include/nxtcut/core/result.hpp
         include/nxtcut/core/thread_pool.hpp
         include/nxtcut/core/time.hpp
