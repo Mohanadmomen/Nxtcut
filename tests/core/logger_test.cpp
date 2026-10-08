@@ -87,7 +87,7 @@ TEST(LoggerTest, MultiThreadedLogging) {
     threads.reserve(kThreads);
 
     for (int t = 0; t < kThreads; ++t) {
-        threads.emplace_back([&logger, t]() {
+        threads.emplace_back([&logger]() {
             for (int i = 0; i < kMsgsPerThread; ++i) {
                 logger.info("thread msg");
             }
