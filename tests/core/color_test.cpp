@@ -52,13 +52,7 @@ TEST(ColorTest, RequiredHexVectors) {
 
 TEST(ColorTest, RequiredInvalidHexInputs) {
     const char* const invalid_inputs[] = {
-        "",
-        "#",
-        "FF8000",
-        "#GG0000",
-        "#12345",
-        "#1234567",
-        "#123456789",
+        "", "#", "FF8000", "#GG0000", "#12345", "#1234567", "#123456789",
     };
     for (const char* invalid : invalid_inputs) {
         const auto res = Color::from_hex(invalid);

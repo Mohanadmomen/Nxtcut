@@ -12,11 +12,12 @@
 namespace nxtcut::core {
 
 /**
- * @brief Constrains arithmetic types for geometry primitives (integral or floating point, excluding bool).
+ * @brief Constrains arithmetic types for geometry primitives (integral or floating point, excluding
+ * bool).
  */
 template <class T>
-concept Arithmetic = (std::integral<T> || std::floating_point<T>) &&
-                     !std::same_as<std::remove_cv_t<T>, bool>;
+concept Arithmetic =
+    (std::integral<T> || std::floating_point<T>) && !std::same_as<std::remove_cv_t<T>, bool>;
 
 /**
  * @brief Represents a 2D position (x, y).
@@ -28,7 +29,9 @@ struct Point {
     T x{};
     T y{};
 
-    constexpr bool operator==(const Point&) const requires std::integral<T> = default;
+    constexpr bool operator==(const Point&) const
+        requires std::integral<T>
+    = default;
 };
 
 /**
@@ -48,7 +51,9 @@ struct Size {
         return width <= static_cast<T>(0) || height <= static_cast<T>(0);
     }
 
-    constexpr bool operator==(const Size&) const requires std::integral<T> = default;
+    constexpr bool operator==(const Size&) const
+        requires std::integral<T>
+    = default;
 };
 
 /**
@@ -109,8 +114,8 @@ struct Rect {
         if (is_empty() || other.is_empty()) {
             return false;
         }
-        return other.left() >= left() && other.right() <= right() &&
-               other.top() >= top() && other.bottom() <= bottom();
+        return other.left() >= left() && other.right() <= right() && other.top() >= top() &&
+               other.bottom() <= bottom();
     }
 
     /**
@@ -120,14 +125,15 @@ struct Rect {
         if (is_empty() || other.is_empty()) {
             return false;
         }
-        return left() < other.right() && right() > other.left() &&
-               top() < other.bottom() && bottom() > other.top();
+        return left() < other.right() && right() > other.left() && top() < other.bottom() &&
+               bottom() > other.top();
     }
 
     /**
      * @brief Returns the overlapping intersection rectangle, or std::nullopt if disjoint.
      */
-    [[nodiscard]] constexpr std::optional<Rect<T>> intersection(const Rect<T>& other) const noexcept {
+    [[nodiscard]] constexpr std::optional<Rect<T>> intersection(
+        const Rect<T>& other) const noexcept {
         if (!intersects(other)) {
             return std::nullopt;
         }
@@ -165,12 +171,13 @@ struct Rect {
         return Point<T>{x + width / static_cast<T>(2), y + height / static_cast<T>(2)};
     }
 
-    constexpr bool operator==(const Rect&) const requires std::integral<T> = default;
+    constexpr bool operator==(const Rect&) const
+        requires std::integral<T>
+    = default;
 };
 
 template <Arithmetic T>
-[[nodiscard]] constexpr bool approx_equal(const Point<T>& a,
-                                          const Point<T>& b,
+[[nodiscard]] constexpr bool approx_equal(const Point<T>& a, const Point<T>& b,
                                           T epsilon = static_cast<T>(1e-9)) noexcept {
     if constexpr (std::floating_point<T>) {
         return std::abs(a.x - b.x) <= epsilon && std::abs(a.y - b.y) <= epsilon;
@@ -180,8 +187,7 @@ template <Arithmetic T>
 }
 
 template <Arithmetic T>
-[[nodiscard]] constexpr bool approx_equal(const Size<T>& a,
-                                          const Size<T>& b,
+[[nodiscard]] constexpr bool approx_equal(const Size<T>& a, const Size<T>& b,
                                           T epsilon = static_cast<T>(1e-9)) noexcept {
     if constexpr (std::floating_point<T>) {
         return std::abs(a.width - b.width) <= epsilon && std::abs(a.height - b.height) <= epsilon;
@@ -191,14 +197,11 @@ template <Arithmetic T>
 }
 
 template <Arithmetic T>
-[[nodiscard]] constexpr bool approx_equal(const Rect<T>& a,
-                                          const Rect<T>& b,
+[[nodiscard]] constexpr bool approx_equal(const Rect<T>& a, const Rect<T>& b,
                                           T epsilon = static_cast<T>(1e-9)) noexcept {
     if constexpr (std::floating_point<T>) {
-        return std::abs(a.x - b.x) <= epsilon &&
-               std::abs(a.y - b.y) <= epsilon &&
-               std::abs(a.width - b.width) <= epsilon &&
-               std::abs(a.height - b.height) <= epsilon;
+        return std::abs(a.x - b.x) <= epsilon && std::abs(a.y - b.y) <= epsilon &&
+               std::abs(a.width - b.width) <= epsilon && std::abs(a.height - b.height) <= epsilon;
     } else {
         return a.x == b.x && a.y == b.y && a.width == b.width && a.height == b.height;
     }
@@ -217,11 +220,12 @@ using RectD = Rect<double>;
 [[nodiscard]] inline Result<SizeD> fit_inside(SizeD content, SizeD container) {
     if (!std::isfinite(content.width) || !std::isfinite(content.height) ||
         !std::isfinite(container.width) || !std::isfinite(container.height) ||
-        content.width <= 0.0 || content.height <= 0.0 ||
-        container.width <= 0.0 || container.height <= 0.0) {
+        content.width <= 0.0 || content.height <= 0.0 || container.width <= 0.0 ||
+        container.height <= 0.0) {
         return make_error(ErrorCode::InvalidArgument, "dimensions must be positive and finite");
     }
-    const double scale = std::min(container.width / content.width, container.height / content.height);
+    const double scale =
+        std::min(container.width / content.width, container.height / content.height);
     return SizeD{content.width * scale, content.height * scale};
 }
 
@@ -231,11 +235,12 @@ using RectD = Rect<double>;
 [[nodiscard]] inline Result<SizeD> fill_outside(SizeD content, SizeD container) {
     if (!std::isfinite(content.width) || !std::isfinite(content.height) ||
         !std::isfinite(container.width) || !std::isfinite(container.height) ||
-        content.width <= 0.0 || content.height <= 0.0 ||
-        container.width <= 0.0 || container.height <= 0.0) {
+        content.width <= 0.0 || content.height <= 0.0 || container.width <= 0.0 ||
+        container.height <= 0.0) {
         return make_error(ErrorCode::InvalidArgument, "dimensions must be positive and finite");
     }
-    const double scale = std::max(container.width / content.width, container.height / content.height);
+    const double scale =
+        std::max(container.width / content.width, container.height / content.height);
     return SizeD{content.width * scale, content.height * scale};
 }
 

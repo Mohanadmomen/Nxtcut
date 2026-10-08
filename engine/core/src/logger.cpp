@@ -6,13 +6,11 @@
 
 namespace nxtcut::core {
 
-Logger::Logger(std::string name,
-               LogLevel min_level,
-               std::vector<std::shared_ptr<LogSink>> sinks,
+Logger::Logger(std::string name, LogLevel min_level, std::vector<std::shared_ptr<LogSink>> sinks,
                std::function<std::int64_t()> clock)
-    : name_(std::move(name))
-    , level_(static_cast<std::uint8_t>(min_level))
-    , clock_(std::move(clock)) {
+    : name_(std::move(name)),
+      level_(static_cast<std::uint8_t>(min_level)),
+      clock_(std::move(clock)) {
     sinks_.reserve(sinks.size());
     for (auto& s : sinks) {
         if (s != nullptr) {
@@ -22,16 +20,17 @@ Logger::Logger(std::string name,
     if (!clock_) {
         clock_ = []() -> std::int64_t {
             const auto now = std::chrono::system_clock::now();
-            return std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+            return std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch())
+                .count();
         };
     }
 }
 
 Logger::Logger(const Logger& other)
-    : name_(other.name_)
-    , level_(other.level_.load(std::memory_order_relaxed))
-    , sinks_(other.sinks_)
-    , clock_(other.clock_) {}
+    : name_(other.name_),
+      level_(other.level_.load(std::memory_order_relaxed)),
+      sinks_(other.sinks_),
+      clock_(other.clock_) {}
 
 Logger& Logger::operator=(const Logger& other) {
     if (this != &other) {
@@ -44,10 +43,10 @@ Logger& Logger::operator=(const Logger& other) {
 }
 
 Logger::Logger(Logger&& other) noexcept
-    : name_(std::move(other.name_))
-    , level_(other.level_.load(std::memory_order_relaxed))
-    , sinks_(std::move(other.sinks_))
-    , clock_(std::move(other.clock_)) {}
+    : name_(std::move(other.name_)),
+      level_(other.level_.load(std::memory_order_relaxed)),
+      sinks_(std::move(other.sinks_)),
+      clock_(std::move(other.clock_)) {}
 
 Logger& Logger::operator=(Logger&& other) noexcept {
     if (this != &other) {
@@ -90,7 +89,8 @@ void Logger::log(LogLevel level, std::string_view message) const {
 }
 
 Logger Logger::child(std::string_view suffix) const {
-    const std::string child_name = name_.empty() ? std::string(suffix) : name_ + "." + std::string(suffix);
+    const std::string child_name =
+        name_.empty() ? std::string(suffix) : name_ + "." + std::string(suffix);
     return Logger(child_name, level(), sinks_, clock_);
 }
 

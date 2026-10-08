@@ -19,7 +19,9 @@ namespace nxtcut::core {
  * explicitly and inject them into components that require logging capabilities.
  * Sinks are held via std::shared_ptr because multiple loggers legitimately share one sink.
  *
- * @note Thread safety: Logging, should_log, level and set_level may be called concurrently from any thread. Copy/move construction and copy/move assignment are NOT synchronized: do not assign to or move from a Logger while another thread is using it.
+ * @note Thread safety: Logging, should_log, level and set_level may be called concurrently from any
+ * thread. Copy/move construction and copy/move assignment are NOT synchronized: do not assign to or
+ * move from a Logger while another thread is using it.
  */
 class Logger {
 public:
@@ -29,11 +31,10 @@ public:
      * @param name Descriptive hierarchy or component name.
      * @param min_level Minimum severity required to emit records.
      * @param sinks Collection of destination sinks. Null pointers are filtered out.
-     * @param clock Optional custom timestamp provider returning unix milliseconds. Defaults to system_clock.
+     * @param clock Optional custom timestamp provider returning unix milliseconds. Defaults to
+     * system_clock.
      */
-    Logger(std::string name,
-           LogLevel min_level,
-           std::vector<std::shared_ptr<LogSink>> sinks,
+    Logger(std::string name, LogLevel min_level, std::vector<std::shared_ptr<LogSink>> sinks,
            std::function<std::int64_t()> clock = {});
 
     Logger(const Logger& other);

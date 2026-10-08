@@ -7,8 +7,7 @@
 
 namespace nxtcut::core {
 
-ThreadPool::ThreadPool(ConstructToken, std::size_t thread_count)
-    : thread_count_(thread_count) {}
+ThreadPool::ThreadPool(ConstructToken, std::size_t thread_count) : thread_count_(thread_count) {}
 
 ThreadPool::~ThreadPool() {
     shutdown();
@@ -83,7 +82,8 @@ void ThreadPool::worker_loop() {
         {
             std::unique_lock<std::mutex> lock(mutex_);
             work_cv_.wait(lock, [this] {
-                return shutting_down_ || !high_queue_.empty() || !normal_queue_.empty() || !low_queue_.empty();
+                return shutting_down_ || !high_queue_.empty() || !normal_queue_.empty() ||
+                       !low_queue_.empty();
             });
 
             if (!high_queue_.empty()) {
@@ -110,7 +110,8 @@ void ThreadPool::worker_loop() {
             {
                 std::lock_guard<std::mutex> lock(mutex_);
                 --active_tasks_;
-                if (active_tasks_ == 0 && high_queue_.empty() && normal_queue_.empty() && low_queue_.empty()) {
+                if (active_tasks_ == 0 && high_queue_.empty() && normal_queue_.empty() &&
+                    low_queue_.empty()) {
                     idle_cv_.notify_all();
                 }
             }
@@ -121,7 +122,8 @@ void ThreadPool::worker_loop() {
 void ThreadPool::wait_idle() {
     std::unique_lock<std::mutex> lock(mutex_);
     idle_cv_.wait(lock, [this] {
-        return active_tasks_ == 0 && high_queue_.empty() && normal_queue_.empty() && low_queue_.empty();
+        return active_tasks_ == 0 && high_queue_.empty() && normal_queue_.empty() &&
+               low_queue_.empty();
     });
 }
 

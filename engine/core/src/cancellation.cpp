@@ -13,8 +13,7 @@ Status CancellationToken::check() const {
     return Status{};
 }
 
-CancellationSource::CancellationSource()
-    : state_(std::make_shared<std::atomic<bool>>(false)) {}
+CancellationSource::CancellationSource() : state_(std::make_shared<std::atomic<bool>>(false)) {}
 
 void CancellationSource::request_cancel() noexcept {
     if (state_) {

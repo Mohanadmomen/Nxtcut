@@ -1,8 +1,9 @@
 #include <nxtcut/core/color.hpp>
 
+#include <fmt/format.h>
+
 #include <algorithm>
 #include <cmath>
-#include <fmt/format.h>
 
 namespace nxtcut::core {
 namespace {
@@ -38,10 +39,8 @@ Result<Color> Color::from_hex(std::string_view hex) {
         const int r_val = parse_hex_digit(digits[0]) * 17;
         const int g_val = parse_hex_digit(digits[1]) * 17;
         const int b_val = parse_hex_digit(digits[2]) * 17;
-        return Color::from_rgba8(static_cast<std::uint8_t>(r_val),
-                                 static_cast<std::uint8_t>(g_val),
-                                 static_cast<std::uint8_t>(b_val),
-                                 255);
+        return Color::from_rgba8(static_cast<std::uint8_t>(r_val), static_cast<std::uint8_t>(g_val),
+                                 static_cast<std::uint8_t>(b_val), 255);
     }
 
     if (digits.size() == 4) {
@@ -49,8 +48,7 @@ Result<Color> Color::from_hex(std::string_view hex) {
         const int g_val = parse_hex_digit(digits[1]) * 17;
         const int b_val = parse_hex_digit(digits[2]) * 17;
         const int a_val = parse_hex_digit(digits[3]) * 17;
-        return Color::from_rgba8(static_cast<std::uint8_t>(r_val),
-                                 static_cast<std::uint8_t>(g_val),
+        return Color::from_rgba8(static_cast<std::uint8_t>(r_val), static_cast<std::uint8_t>(g_val),
                                  static_cast<std::uint8_t>(b_val),
                                  static_cast<std::uint8_t>(a_val));
     }
@@ -59,10 +57,8 @@ Result<Color> Color::from_hex(std::string_view hex) {
         const int r_val = parse_hex_digit(digits[0]) * 16 + parse_hex_digit(digits[1]);
         const int g_val = parse_hex_digit(digits[2]) * 16 + parse_hex_digit(digits[3]);
         const int b_val = parse_hex_digit(digits[4]) * 16 + parse_hex_digit(digits[5]);
-        return Color::from_rgba8(static_cast<std::uint8_t>(r_val),
-                                 static_cast<std::uint8_t>(g_val),
-                                 static_cast<std::uint8_t>(b_val),
-                                 255);
+        return Color::from_rgba8(static_cast<std::uint8_t>(r_val), static_cast<std::uint8_t>(g_val),
+                                 static_cast<std::uint8_t>(b_val), 255);
     }
 
     if (digits.size() == 8) {
@@ -70,8 +66,7 @@ Result<Color> Color::from_hex(std::string_view hex) {
         const int g_val = parse_hex_digit(digits[2]) * 16 + parse_hex_digit(digits[3]);
         const int b_val = parse_hex_digit(digits[4]) * 16 + parse_hex_digit(digits[5]);
         const int a_val = parse_hex_digit(digits[6]) * 16 + parse_hex_digit(digits[7]);
-        return Color::from_rgba8(static_cast<std::uint8_t>(r_val),
-                                 static_cast<std::uint8_t>(g_val),
+        return Color::from_rgba8(static_cast<std::uint8_t>(r_val), static_cast<std::uint8_t>(g_val),
                                  static_cast<std::uint8_t>(b_val),
                                  static_cast<std::uint8_t>(a_val));
     }

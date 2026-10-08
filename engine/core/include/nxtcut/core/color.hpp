@@ -30,8 +30,8 @@ struct Color {
     /**
      * @brief Constructs a Color from 8-bit unsigned integer channels.
      */
-    [[nodiscard]] static constexpr Color from_rgba8(
-        std::uint8_t r, std::uint8_t g, std::uint8_t b, std::uint8_t a = 255) noexcept {
+    [[nodiscard]] static constexpr Color from_rgba8(std::uint8_t r, std::uint8_t g, std::uint8_t b,
+                                                    std::uint8_t a = 255) noexcept {
         return Color{
             static_cast<float>(r) / 255.0f,
             static_cast<float>(g) / 255.0f,
@@ -51,7 +51,8 @@ struct Color {
     [[nodiscard]] static Result<Color> from_hex(std::string_view hex);
 
     /**
-     * @brief Converts color channels to 8-bit unsigned integers [0, 255] (rounded to nearest, clamped).
+     * @brief Converts color channels to 8-bit unsigned integers [0, 255] (rounded to nearest,
+     * clamped).
      */
     [[nodiscard]] std::array<std::uint8_t, 4> to_rgba8() const noexcept;
 
@@ -68,12 +69,14 @@ struct Color {
     [[nodiscard]] PremultipliedColor premultiplied() const noexcept;
 
     /**
-     * @brief Converts RGB channels from sRGB transfer characteristics to linear space. Alpha unchanged.
+     * @brief Converts RGB channels from sRGB transfer characteristics to linear space. Alpha
+     * unchanged.
      */
     [[nodiscard]] Color to_linear() const noexcept;
 
     /**
-     * @brief Converts RGB channels from linear space to sRGB transfer characteristics. Alpha unchanged.
+     * @brief Converts RGB channels from linear space to sRGB transfer characteristics. Alpha
+     * unchanged.
      */
     [[nodiscard]] Color to_srgb() const noexcept;
 
@@ -81,10 +84,8 @@ struct Color {
      * @brief Compares components for approximate equality within tolerance.
      */
     [[nodiscard]] bool approx_equal(const Color& other, float eps = 1e-6f) const noexcept {
-        return std::abs(r - other.r) <= eps &&
-               std::abs(g - other.g) <= eps &&
-               std::abs(b - other.b) <= eps &&
-               std::abs(a - other.a) <= eps;
+        return std::abs(r - other.r) <= eps && std::abs(g - other.g) <= eps &&
+               std::abs(b - other.b) <= eps && std::abs(a - other.a) <= eps;
     }
 };
 
@@ -111,11 +112,10 @@ struct PremultipliedColor {
     /**
      * @brief Compares components for approximate equality within tolerance.
      */
-    [[nodiscard]] bool approx_equal(const PremultipliedColor& other, float eps = 1e-6f) const noexcept {
-        return std::abs(r - other.r) <= eps &&
-               std::abs(g - other.g) <= eps &&
-               std::abs(b - other.b) <= eps &&
-               std::abs(a - other.a) <= eps;
+    [[nodiscard]] bool approx_equal(const PremultipliedColor& other,
+                                    float eps = 1e-6f) const noexcept {
+        return std::abs(r - other.r) <= eps && std::abs(g - other.g) <= eps &&
+               std::abs(b - other.b) <= eps && std::abs(a - other.a) <= eps;
     }
 };
 
@@ -156,8 +156,8 @@ inline Color PremultipliedColor::unpremultiplied() const noexcept {
  *
  * Parameter t is not clamped (extrapolation allowed). Returns exact endpoints at t = 0 and t = 1.
  */
-[[nodiscard]] inline PremultipliedColor lerp(
-    const PremultipliedColor& c1, const PremultipliedColor& c2, float t) noexcept {
+[[nodiscard]] inline PremultipliedColor lerp(const PremultipliedColor& c1,
+                                             const PremultipliedColor& c2, float t) noexcept {
     if (t == 0.0f) {
         return c1;
     }

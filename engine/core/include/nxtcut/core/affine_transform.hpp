@@ -47,21 +47,23 @@ public:
     /**
      * @brief Creates a rotation transform by radians.
      *
-     * Positive angles rotate the x axis towards the y axis: (x, y) -> (x cos - y sin, x sin + y cos).
-     * On screens where y points downwards, this corresponds to clockwise rotation.
+     * Positive angles rotate the x axis towards the y axis: (x, y) -> (x cos - y sin, x sin + y
+     * cos). On screens where y points downwards, this corresponds to clockwise rotation.
      */
     [[nodiscard]] static AffineTransform rotation(double radians) noexcept;
 
     /**
      * @brief Creates an affine transform with raw matrix components.
      */
-    [[nodiscard]] static constexpr AffineTransform from_matrix(
-        double a, double b, double c, double d, double tx, double ty) noexcept {
+    [[nodiscard]] static constexpr AffineTransform from_matrix(double a, double b, double c,
+                                                               double d, double tx,
+                                                               double ty) noexcept {
         return AffineTransform(a, b, c, d, tx, ty);
     }
 
     /**
-     * @brief Composes transformations such that this transform is applied FIRST, and next is applied SECOND.
+     * @brief Composes transformations such that this transform is applied FIRST, and next is
+     * applied SECOND.
      *
      * Guarantees: this->then(next).apply(p) == next.apply(this->apply(p)).
      */
@@ -73,21 +75,21 @@ public:
     [[nodiscard]] PointD apply(PointD p) const noexcept;
 
     /**
-     * @brief Transforms a rectangle and returns the axis-aligned bounding box of the four transformed corners.
+     * @brief Transforms a rectangle and returns the axis-aligned bounding box of the four
+     * transformed corners.
      */
     [[nodiscard]] RectD apply(RectD rect) const noexcept;
 
     /**
      * @brief Computes the matrix determinant (a * d - b * c).
      */
-    [[nodiscard]] constexpr double determinant() const noexcept {
-        return a_ * d_ - b_ * c_;
-    }
+    [[nodiscard]] constexpr double determinant() const noexcept { return a_ * d_ - b_ * c_; }
 
     /**
      * @brief Computes the inverse transformation.
      *
-     * @return Inverse AffineTransform, or ErrorCode::InvalidArgument if determinant magnitude <= 1e-12 or elements are non-finite.
+     * @return Inverse AffineTransform, or ErrorCode::InvalidArgument if determinant magnitude <=
+     * 1e-12 or elements are non-finite.
      */
     [[nodiscard]] Result<AffineTransform> inverse() const;
 
@@ -101,7 +103,8 @@ public:
     /**
      * @brief Compares components for approximate equality within tolerance.
      */
-    [[nodiscard]] bool approx_equal(const AffineTransform& other, double epsilon = 1e-9) const noexcept;
+    [[nodiscard]] bool approx_equal(const AffineTransform& other,
+                                    double epsilon = 1e-9) const noexcept;
 
 private:
     constexpr AffineTransform(double a, double b, double c, double d, double tx, double ty) noexcept

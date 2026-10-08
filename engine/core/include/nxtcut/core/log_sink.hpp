@@ -10,7 +10,8 @@ namespace nxtcut::core {
 /**
  * @brief Structured record representing an individual logging event.
  *
- * @note Thread safety: Value semantics. The string views are valid ONLY during the sink write() call.
+ * @note Thread safety: Value semantics. The string views are valid ONLY during the sink write()
+ * call.
  */
 struct LogRecord {
     LogLevel level{LogLevel::Info};
@@ -35,7 +36,8 @@ struct LogRecord {
  * Sinks process log records delivered from Logger instances. Implementations must guarantee
  * thread-safe operation as write() and flush() can be invoked simultaneously across threads.
  *
- * @note Thread safety: Thread-safe (implementations must be safe to call concurrently from multiple threads).
+ * @note Thread safety: Thread-safe (implementations must be safe to call concurrently from multiple
+ * threads).
  */
 class LogSink {
 public:

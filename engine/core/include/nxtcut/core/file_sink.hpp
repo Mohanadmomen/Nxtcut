@@ -13,8 +13,8 @@ namespace nxtcut::core {
 /**
  * @brief Log sink that persists formatted log lines to a local filesystem file.
  *
- * Line endings are written explicitly as LF ('\n') in binary mode to ensure cross-platform consistency.
- * Log entries at Warn severity or higher are flushed immediately to disk.
+ * Line endings are written explicitly as LF ('\n') in binary mode to ensure cross-platform
+ * consistency. Log entries at Warn severity or higher are flushed immediately to disk.
  *
  * @note Thread safety: Thread-safe (internal mutex synchronization).
  */
@@ -42,7 +42,7 @@ public:
      * @return Unique pointer to FileSink or ErrorCode::IoError if file cannot be opened.
      */
     [[nodiscard]] static Result<std::unique_ptr<FileSink>> create(const std::filesystem::path& path,
-                                                                   Mode mode);
+                                                                  Mode mode);
 
     void write(const LogRecord& record) override;
     void flush() override;

@@ -12,14 +12,10 @@ AffineTransform AffineTransform::rotation(double radians) noexcept {
 }
 
 AffineTransform AffineTransform::then(const AffineTransform& next) const noexcept {
-    return from_matrix(
-        next.a_ * a_ + next.c_ * b_,
-        next.b_ * a_ + next.d_ * b_,
-        next.a_ * c_ + next.c_ * d_,
-        next.b_ * c_ + next.d_ * d_,
-        next.a_ * tx_ + next.c_ * ty_ + next.tx_,
-        next.b_ * tx_ + next.d_ * ty_ + next.ty_
-    );
+    return from_matrix(next.a_ * a_ + next.c_ * b_, next.b_ * a_ + next.d_ * b_,
+                       next.a_ * c_ + next.c_ * d_, next.b_ * c_ + next.d_ * d_,
+                       next.a_ * tx_ + next.c_ * ty_ + next.tx_,
+                       next.b_ * tx_ + next.d_ * ty_ + next.ty_);
 }
 
 PointD AffineTransform::apply(PointD p) const noexcept {
@@ -49,8 +45,8 @@ RectD AffineTransform::apply(RectD rect) const noexcept {
 }
 
 Result<AffineTransform> AffineTransform::inverse() const {
-    if (!std::isfinite(a_) || !std::isfinite(b_) || !std::isfinite(c_) ||
-        !std::isfinite(d_) || !std::isfinite(tx_) || !std::isfinite(ty_)) {
+    if (!std::isfinite(a_) || !std::isfinite(b_) || !std::isfinite(c_) || !std::isfinite(d_) ||
+        !std::isfinite(tx_) || !std::isfinite(ty_)) {
         return make_error(ErrorCode::InvalidArgument, "matrix elements must be finite");
     }
 
@@ -71,12 +67,9 @@ Result<AffineTransform> AffineTransform::inverse() const {
 }
 
 bool AffineTransform::approx_equal(const AffineTransform& other, double epsilon) const noexcept {
-    return std::abs(a_ - other.a_) <= epsilon &&
-           std::abs(b_ - other.b_) <= epsilon &&
-           std::abs(c_ - other.c_) <= epsilon &&
-           std::abs(d_ - other.d_) <= epsilon &&
-           std::abs(tx_ - other.tx_) <= epsilon &&
-           std::abs(ty_ - other.ty_) <= epsilon;
+    return std::abs(a_ - other.a_) <= epsilon && std::abs(b_ - other.b_) <= epsilon &&
+           std::abs(c_ - other.c_) <= epsilon && std::abs(d_ - other.d_) <= epsilon &&
+           std::abs(tx_ - other.tx_) <= epsilon && std::abs(ty_ - other.ty_) <= epsilon;
 }
 
 }  // namespace nxtcut::core

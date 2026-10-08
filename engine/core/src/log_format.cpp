@@ -56,17 +56,9 @@ std::string format_log_line(const LogRecord& record) {
 
     const CivilDate date = civil_from_days(days);
 
-    return fmt::format("{:04d}-{:02d}-{:02d} {:02d}:{:02d}:{:02d}.{:03d} {} [{}] {}",
-                       date.year,
-                       date.month,
-                       date.day,
-                       hours,
-                       minutes,
-                       seconds,
-                       millis,
-                       to_string(record.level),
-                       record.logger_name,
-                       record.message);
+    return fmt::format("{:04d}-{:02d}-{:02d} {:02d}:{:02d}:{:02d}.{:03d} {} [{}] {}", date.year,
+                       date.month, date.day, hours, minutes, seconds, millis,
+                       to_string(record.level), record.logger_name, record.message);
 }
 
 }  // namespace nxtcut::core

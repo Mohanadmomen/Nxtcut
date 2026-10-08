@@ -11,7 +11,8 @@
 namespace nxtcut::core {
 
 /**
- * @brief Thread-safe ring buffer log sink holding up to a fixed maximum number of entries in memory.
+ * @brief Thread-safe ring buffer log sink holding up to a fixed maximum number of entries in
+ * memory.
  *
  * Oldest records are dropped when capacity is exceeded. Designed to feed in-app UI log viewers.
  *

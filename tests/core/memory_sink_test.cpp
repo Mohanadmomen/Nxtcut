@@ -61,7 +61,8 @@ TEST(MemorySinkTest, ThreadSafety) {
     for (int t = 0; t < kThreads; ++t) {
         threads.emplace_back([&sink]() {
             for (int i = 0; i < kIterations; ++i) {
-                sink.write(LogRecord{LogLevel::Info, static_cast<std::int64_t>(i), "thread", "data"});
+                sink.write(
+                    LogRecord{LogLevel::Info, static_cast<std::int64_t>(i), "thread", "data"});
                 static_cast<void>(sink.size());
                 static_cast<void>(sink.snapshot());
             }

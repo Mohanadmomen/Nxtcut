@@ -32,7 +32,8 @@ public:
     /**
      * @brief Verifies that cancellation has not been requested.
      *
-     * @return Success Status if not cancelled, or ErrorCode::Cancelled with message "operation cancelled".
+     * @return Success Status if not cancelled, or ErrorCode::Cancelled with message "operation
+     * cancelled".
      */
     [[nodiscard]] Status check() const;
 
@@ -45,7 +46,8 @@ private:
 };
 
 /**
- * @brief Controlling source that initiates cancellation across associated CancellationToken instances.
+ * @brief Controlling source that initiates cancellation across associated CancellationToken
+ * instances.
  *
  * Non-copyable and non-movable: a CancellationSource represents an authoritative cancellation
  * domain lifecycle. Disallowing copy and move guarantees that the source's identity and ownership

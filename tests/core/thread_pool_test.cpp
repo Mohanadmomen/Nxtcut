@@ -41,10 +41,12 @@ TEST(ThreadPoolTest, PriorityOrderAndFifoWithinPriority) {
     auto release_fut = gate_release.get_future().share();
 
     // High gate task occupies the single worker
-    auto gate_task_fut = pool->submit([&gate_started, release_fut]() {
-        gate_started.set_value();
-        release_fut.get();
-    }, TaskPriority::High);
+    auto gate_task_fut = pool->submit(
+        [&gate_started, release_fut]() {
+            gate_started.set_value();
+            release_fut.get();
+        },
+        TaskPriority::High);
     ASSERT_TRUE(gate_task_fut.has_value());
 
     // Wait until worker is actively holding the gate
@@ -132,9 +134,7 @@ TEST(ThreadPoolTest, TaskExceptionCapturedByFuture) {
     ASSERT_TRUE(pool_res.has_value());
     auto pool = std::move(*pool_res);
 
-    auto fut = pool->submit([]() -> int {
-        throw std::runtime_error("simulated task failure");
-    });
+    auto fut = pool->submit([]() -> int { throw std::runtime_error("simulated task failure"); });
     ASSERT_TRUE(fut.has_value());
 
     EXPECT_THROW(fut->get(), std::runtime_error);
@@ -157,9 +157,10 @@ TEST(ThreadPoolTest, DestructorRunsQueuedTasks) {
         auto release_fut = gate_release.get_future().share();
 
         ASSERT_TRUE(pool->submit([&gate_started, release_fut]() {
-            gate_started.set_value();
-            release_fut.get();
-        }).has_value());
+                            gate_started.set_value();
+                            release_fut.get();
+                        })
+                        .has_value());
 
         gate_started.get_future().get();
 
@@ -182,9 +183,8 @@ TEST(ThreadPoolTest, HighConcurrencyMultipleWorkers) {
     constexpr int kTaskCount = 1000;
 
     for (int i = 0; i < kTaskCount; ++i) {
-        ASSERT_TRUE(pool->submit([&counter]() {
-            counter.fetch_add(1, std::memory_order_relaxed);
-        }).has_value());
+        ASSERT_TRUE(pool->submit([&counter]() { counter.fetch_add(1, std::memory_order_relaxed); })
+                        .has_value());
     }
 
     pool->wait_idle();
@@ -199,9 +199,8 @@ TEST(ThreadPoolTest, ConcurrentShutdownCallsAreSafe) {
     std::atomic<int> counter{0};
     constexpr int kTaskCount = 200;
     for (int i = 0; i < kTaskCount; ++i) {
-        ASSERT_TRUE(pool->submit([&counter]() {
-            counter.fetch_add(1, std::memory_order_relaxed);
-        }).has_value());
+        ASSERT_TRUE(pool->submit([&counter]() { counter.fetch_add(1, std::memory_order_relaxed); })
+                        .has_value());
     }
 
     std::promise<void> gate_promise;
@@ -237,12 +236,13 @@ TEST(ThreadPoolTest, TaskCanSubmitTaskWhilePoolIsAlive) {
     std::atomic<bool> flag{false};
     ThreadPool* const pool_ptr = pool.get();
 
-    auto first_task_res = pool->submit([pool_ptr, &flag]() {
-        auto second_task_res = pool_ptr->submit([&flag]() {
-            flag.store(true, std::memory_order_relaxed);
-        });
-        EXPECT_TRUE(second_task_res.has_value());
-    }, TaskPriority::Normal);
+    auto first_task_res = pool->submit(
+        [pool_ptr, &flag]() {
+            auto second_task_res =
+                pool_ptr->submit([&flag]() { flag.store(true, std::memory_order_relaxed); });
+            EXPECT_TRUE(second_task_res.has_value());
+        },
+        TaskPriority::Normal);
     ASSERT_TRUE(first_task_res.has_value());
 
     pool->wait_idle();

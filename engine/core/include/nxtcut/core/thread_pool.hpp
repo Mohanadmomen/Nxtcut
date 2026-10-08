@@ -36,7 +36,8 @@ enum class TaskPriority : std::uint8_t {
  * pool (a thread cannot join itself).
  *
  * @note Thread safety: Thread-safe (all public methods except wait_idle and shutdown may be called
- * concurrently from any thread; neither wait_idle nor shutdown may be called from worker threads of this pool).
+ * concurrently from any thread; neither wait_idle nor shutdown may be called from worker threads of
+ * this pool).
  */
 class ThreadPool {
 public:
@@ -82,16 +83,15 @@ public:
      * @return std::future holding task result, or ErrorCode::Cancelled on shutdown.
      */
     template <class F>
-    requires std::is_invocable_v<std::decay_t<F>> && std::is_move_constructible_v<std::decay_t<F>>
+        requires std::is_invocable_v<std::decay_t<F>> &&
+                 std::is_move_constructible_v<std::decay_t<F>>
     [[nodiscard]] Result<std::future<std::invoke_result_t<std::decay_t<F>>>> submit(
         F&& f, TaskPriority priority = TaskPriority::Normal) {
         using ReturnT = std::invoke_result_t<std::decay_t<F>>;
         std::packaged_task<ReturnT()> task(std::forward<F>(f));
         auto fut = task.get_future();
 
-        UniqueTask u_task([t = std::move(task)]() mutable {
-            t();
-        });
+        UniqueTask u_task([t = std::move(task)]() mutable { t(); });
 
         auto status = enqueue_task(std::move(u_task), priority);
         if (!status.has_value()) {
@@ -108,15 +108,16 @@ public:
     void wait_idle();
 
     /**
-     * @brief Initiates graceful shutdown: rejects new submissions, finishes all queued tasks, and joins workers.
+     * @brief Initiates graceful shutdown: rejects new submissions, finishes all queued tasks, and
+     * joins workers.
      *
      * Calling shutdown() is idempotent. Destructor calls shutdown automatically.
-     * shutdown() must NOT be called from a worker thread of this pool (a thread cannot join itself).
+     * shutdown() must NOT be called from a worker thread of this pool (a thread cannot join
+     * itself).
      *
      * @pre Must NOT be called from a worker thread of this pool (deadlock / self-join).
      */
     void shutdown();
-
 
     /**
      * @brief Number of worker threads managed by this pool.

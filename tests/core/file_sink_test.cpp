@@ -15,7 +15,8 @@ struct TempDirectoryFixture {
 
     TempDirectoryFixture() {
         const auto now_ns = std::chrono::steady_clock::now().time_since_epoch().count();
-        path = std::filesystem::temp_directory_path() / ("nxtcut_fs_test_" + std::to_string(now_ns));
+        path =
+            std::filesystem::temp_directory_path() / ("nxtcut_fs_test_" + std::to_string(now_ns));
         std::filesystem::create_directories(path);
     }
 
