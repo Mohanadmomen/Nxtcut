@@ -1,0 +1,19 @@
+nxtcut_add_module_test(
+    NAME model
+    SOURCES
+        blend_mode_test.cpp
+        checked_arithmetic_test.cpp
+        clip_test.cpp
+        compound_graph_test.cpp
+        effect_test.cpp
+        ids_test.cpp
+        media_test.cpp
+        project_test.cpp
+        property_test.cpp
+        sequence_test.cpp
+        speed_test.cpp
+        time_coords_test.cpp
+        track_test.cpp
+        transform_test.cpp
+        validation_test.cpp
+)

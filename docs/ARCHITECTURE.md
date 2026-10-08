@@ -85,7 +85,19 @@ Professional multi-track timeline editing requires sub-frame precision, audio-sa
    $$\text{time} = \text{round}\left(\frac{\text{frame} \times \text{denominator} \times kTicksPerSecond}{\text{numerator}}\right)$$
    using `mul_div()` with 128-bit intermediate precision and `Nearest` rounding (half away from zero). Consequently, frame $N$ always maps to the exact same timeline instant regardless of scrubbing history, timeline zoom, or playback speed.
 ### 2. `model`
-Defines the core document object model for multi-track video editing, including project metadata, timelines, audio/video tracks, clip entities, transitions, and timeline markers without any execution logic or side effects.
+Defines the pure, immutable-ready document object model for multi-track video editing, including projects, sequences, tracks, clips, effects, media asset descriptors, and timeline markers.
+- **Purpose**: Represents timeline structure, media relationships, and visual/audio clip properties as plain data. Contains no threads, I/O, rendering, logging, or Qt coupling. A copy of a `Project` serves as an immutable document snapshot for rendering.
+- **Allowed Dependencies**: `core` (plus standard library).
+- **Key Types & Components**:
+  - **Entity Identifiers (`ids.hpp`)**: Strongly-typed entity identifiers wrapping `core::Id`: `ProjectId`, `SequenceId`, `TrackId`, `ClipId`, `MediaId`, `EffectId`, `MarkerId`, `LinkId`, and `generate_id<IdT>()`.
+  - **Time Coordinate Systems (`time_coords.hpp`, `speed.hpp`)**: Discrete coordinate systems wrapping `core::TimePoint`: `TimelineTime` (sequence timeline), `ClipTime` (relative clip offset), `SourceTime` (source media instant), and exact reduced rational `Speed`. No implicit conversions or arithmetic operations cross coordinate system boundaries.
+  - **Animatable Properties (`property.hpp`)**: `Property<T>` container wrapping constant values with future-proof keyframe animation abstraction.
+  - **Visual & Audio Properties (`transform.hpp`, `blend_mode.hpp`, `effect.hpp`)**: `TransformProps` (position, scale, rotation, anchor, opacity, crops), `BlendMode` enumerations, and `EffectInstance` parameter configurations.
+  - **Clips & Media Descriptors (`media.hpp`, `clip.hpp`)**: `MediaAsset`, `MediaKind`, and `Clip` holding `ClipContent` (`VideoContent`, `AudioContent`, `ImageContent`, `TextContent`, `CompoundContent`). Checked time conversions (`clip_end`, `timeline_to_clip`, `clip_to_timeline`, `clip_to_source`, `timeline_to_source`, `source_to_clip`, `source_span`).
+  - **Tracks & Sequences (`track.hpp`, `sequence.hpp`)**: `Track`, `TrackKind`, `Marker`, `Sequence`, and `sequence_duration()`.
+  - **Document Root (`project.hpp`)**: `Project` entity mapping media assets and sequences.
+  - **Compound Hierarchy Graph (`compound_graph.hpp`)**: Iterative DFS cycle detection (`find_compound_cycles` reports one cycle per back edge; `find_compound_cycle` returns the first) and insertion validation (`would_create_cycle`) immune to recursion stack overflow.
+  - **Validation Engine (`validation.hpp`)**: Deterministic document rule evaluation (`collect_issues`, `validate`), reporting categorized `ValidationCode` issues with structural paths.
 
 ### 3. `commands`
 Implements the command pattern for all user timeline operations, providing transactional edit commands, undo/redo history stacks, batch command grouping, and document state mutation.

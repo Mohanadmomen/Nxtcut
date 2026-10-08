@@ -1,0 +1,30 @@
+nxtcut_add_module(
+    NAME model
+    SOURCES
+        src/blend_mode.cpp
+        src/clip.cpp
+        src/compound_graph.cpp
+        src/media.cpp
+        src/project.cpp
+        src/sequence.cpp
+        src/track.cpp
+        src/validation.cpp
+    HEADERS
+        include/nxtcut/model/blend_mode.hpp
+        include/nxtcut/model/checked_arithmetic.hpp
+        include/nxtcut/model/clip.hpp
+        include/nxtcut/model/compound_graph.hpp
+        include/nxtcut/model/effect.hpp
+        include/nxtcut/model/ids.hpp
+        include/nxtcut/model/media.hpp
+        include/nxtcut/model/project.hpp
+        include/nxtcut/model/property.hpp
+        include/nxtcut/model/sequence.hpp
+        include/nxtcut/model/speed.hpp
+        include/nxtcut/model/time_coords.hpp
+        include/nxtcut/model/track.hpp
+        include/nxtcut/model/transform.hpp
+        include/nxtcut/model/validation.hpp
+    DEPENDS
+        nxtcut::core
+)
