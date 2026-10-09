@@ -95,7 +95,6 @@ TEST(MoveClipsTest, LinkedV1andA1MoveTogetherUnlessIgnoreLinks) {
     const auto main_seq_id = editor.snapshot()->main_sequence;
     const auto v_track_id = editor.snapshot()->sequences.at(main_seq_id).tracks[0].id;
     const auto v1_id = editor.snapshot()->sequences.at(main_seq_id).tracks[0].clips[0].id;
-    const auto a1_id = editor.snapshot()->sequences.at(main_seq_id).tracks[1].clips[0].id;
 
     // First delete V2 and V3 so V1 has room to move to 2s
     DeleteClips del_v2_v3{main_seq_id,
