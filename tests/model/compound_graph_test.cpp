@@ -5,7 +5,7 @@
 #include <utility>
 #include <vector>
 
-#include "test_fixtures.hpp"
+#include <nxtcut_test/model_fixtures.hpp>
 
 namespace nxtcut::model {
 namespace {

@@ -2,7 +2,7 @@
 
 #include <gtest/gtest.h>
 
-#include "test_fixtures.hpp"
+#include <nxtcut_test/model_fixtures.hpp>
 
 namespace nxtcut::model {
 namespace {

@@ -4,6 +4,7 @@ nxtcut_add_module(
         src/blend_mode.cpp
         src/clip.cpp
         src/compound_graph.cpp
+        src/equality.cpp
         src/media.cpp
         src/project.cpp
         src/sequence.cpp
@@ -15,6 +16,7 @@ nxtcut_add_module(
         include/nxtcut/model/clip.hpp
         include/nxtcut/model/compound_graph.hpp
         include/nxtcut/model/effect.hpp
+        include/nxtcut/model/equality.hpp
         include/nxtcut/model/ids.hpp
         include/nxtcut/model/media.hpp
         include/nxtcut/model/project.hpp

@@ -100,7 +100,16 @@ Defines the pure, immutable-ready document object model for multi-track video ed
   - **Validation Engine (`validation.hpp`)**: Deterministic document rule evaluation (`collect_issues`, `validate`), reporting categorized `ValidationCode` issues with structural paths.
 
 ### 3. `commands`
-Implements the command pattern for all user timeline operations, providing transactional edit commands, undo/redo history stacks, batch command grouping, and document state mutation.
+Provides the transactional mutation engine and history management for document models. Contains no per-command undo code: commands are pure value structs with `build()` producing a `ChangeSet` applied or inverted generically.
+- **Purpose**: Centralizes all document state mutation, maintaining canonical sort invariants and executing transactional edits with commit validation, undo/redo stacks, and snapshot publishing.
+- **Allowed Dependencies**: `core`, `model` (plus `keyframes` in future steps).
+- **Key Types & Components**:
+  - **Granular Change Records (`change_set.hpp`)**: `ChangeSet`, `Change` variant (`ProjectPropertiesChange`, `MediaChange`, `SequenceChange`, `SequenceSettingsChange`, `TrackChange`, `TrackMove`, `TrackPropertiesChange`, `ClipChange`, `MarkerChange`), `inverse()`, and `receipt_of()`.
+  - **Application & Canonical Sorting (`apply.hpp`)**: `apply(project, change_set)` and `normalize(project)`. Enforces ascending timeline tick ordering with deterministic ID tie-breaking.
+  - **Bounded History Management (`history.hpp`)**: `History` with bounded deque undo/redo stacks.
+  - **Command Interface (`edit_command.hpp`)**: `EditCommand` concept requiring pure `build(project, ids)` and `label()`.
+  - **Editing Commands**: Plain structs for tracks (`AddTrack`, `RemoveTrack`, `MoveTrack`, `SetTrackProperties`), media assets (`AddMedia`, `RemoveMedia`, `RelinkMedia`), clips (`SetClipProperties`, `SetAudioClipProperties`), markers (`AddMarker`, `RemoveMarker`), sequences (`CreateSequence`, `RemoveSequence`, `SetSequenceSettings`), and project properties (`SetProjectProperties`).
+  - **Document Coordinator (`editor.hpp`)**: `Editor` (UI-thread document owner, snapshot publisher, passkey factory), `Transaction` (move-only RAII batching with validate-on-commit), and `EditListener` (synchronous event observer with re-entrancy protection).
 
 ### 4. `keyframes`
 Manages parameter animation over time, implementing keyframe storage, interpolation algorithms (linear, bezier, easing curves), parameter evaluation at arbitrary timestamps, and spatial/temporal curve math.
