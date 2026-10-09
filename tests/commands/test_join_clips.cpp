@@ -10,6 +10,8 @@
 #include <nxtcut/model/speed.hpp>
 #include <nxtcut/model/time_coords.hpp>
 
+#include <gtest/gtest.h>
+
 #include <cstdint>
 #include <optional>
 #include <string>
@@ -17,11 +19,9 @@
 #include <variant>
 #include <vector>
 
-#include <gtest/gtest.h>
-
+#include "test_helper.hpp"
 #include <nxtcut_test/assertions.hpp>
 #include <nxtcut_test/model_fixtures.hpp>
-#include "test_helper.hpp"
 
 namespace nxtcut::commands {
 namespace {
@@ -96,8 +96,7 @@ TEST(JoinClipsTest, MismatchedPropertiesGiveInvalidArgument) {
 
     // Create two video clips on video track
     const auto video_media_id =
-        std::get<model::VideoContent>(
-            project.sequences.at(main_seq_id).tracks[0].clips[0].content)
+        std::get<model::VideoContent>(project.sequences.at(main_seq_id).tracks[0].clips[0].content)
             .media;
 
     project.sequences.at(main_seq_id).tracks[0].clips.clear();
@@ -149,9 +148,10 @@ TEST(JoinClipsTest, MismatchedPropertiesGiveInvalidArgument) {
     // 3. Non-contiguous source
     {
         model::Project p = project;
-	c2.content = model::VideoContent{video_media_id};
+        c2.content = model::VideoContent{video_media_id};
         c2.start = timeline_at_seconds(5);
-        c2.source_in = model::SourceTime::from_ticks(timeline_at_seconds(10).ticks());  // gap in source
+        c2.source_in =
+            model::SourceTime::from_ticks(timeline_at_seconds(10).ticks());  // gap in source
         p.sequences.at(main_seq_id).tracks[0].clips = {c1, c2};
         core::UuidGenerator local_gen(11032ULL);
         auto ed = Editor::create(std::move(p), local_gen).value();
@@ -198,7 +198,8 @@ TEST(JoinClipsTest, MismatchedPropertiesGiveInvalidArgument) {
         c2.transform = c1.transform;
         c2.content = model::AudioContent{video_media_id};
         p.sequences.at(main_seq_id).tracks[0].clips = {c1};
-        // Put c2 on track 1 (Audio track kind doesn't matter for this test, but let's make a video track)
+        // Put c2 on track 1 (Audio track kind doesn't matter for this test, but let's make a video
+        // track)
         p.sequences.at(main_seq_id).tracks[1].clips = {c2};
         core::UuidGenerator local_gen(11035ULL);
         auto ed = Editor::create(std::move(p), local_gen).value();
@@ -271,8 +272,8 @@ TEST(JoinClipsTest, JoiningVideoPairLeavesAudioHalvesWithLinkCleared) {
     // The audio track still has two halves
     const auto& a_clips = editor.snapshot()->sequences.at(main_seq_id).tracks[1].clips;
     ASSERT_EQ(a_clips.size(), 2U);
-    // Link repair: right half audio had a link with right half video, but right half video was removed!
-    // So right half audio has fewer than 2 members -> cleared!
+    // Link repair: right half audio had a link with right half video, but right half video was
+    // removed! So right half audio has fewer than 2 members -> cleared!
     EXPECT_FALSE(a_clips[1].link_id.has_value());
 }
 

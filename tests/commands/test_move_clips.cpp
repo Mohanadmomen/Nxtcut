@@ -7,16 +7,16 @@
 #include <nxtcut/model/project.hpp>
 #include <nxtcut/model/time_coords.hpp>
 
+#include <gtest/gtest.h>
+
 #include <cstdint>
 #include <optional>
 #include <string>
 #include <vector>
 
-#include <gtest/gtest.h>
-
+#include "test_helper.hpp"
 #include <nxtcut_test/assertions.hpp>
 #include <nxtcut_test/model_fixtures.hpp>
-#include "test_helper.hpp"
 
 namespace nxtcut::commands {
 namespace {
@@ -98,11 +98,10 @@ TEST(MoveClipsTest, LinkedV1andA1MoveTogetherUnlessIgnoreLinks) {
     const auto a1_id = editor.snapshot()->sequences.at(main_seq_id).tracks[1].clips[0].id;
 
     // First delete V2 and V3 so V1 has room to move to 2s
-    DeleteClips del_v2_v3{
-        main_seq_id,
-        {editor.snapshot()->sequences.at(main_seq_id).tracks[0].clips[1].id,
-         editor.snapshot()->sequences.at(main_seq_id).tracks[0].clips[2].id},
-        true};
+    DeleteClips del_v2_v3{main_seq_id,
+                          {editor.snapshot()->sequences.at(main_seq_id).tracks[0].clips[1].id,
+                           editor.snapshot()->sequences.at(main_seq_id).tracks[0].clips[2].id},
+                          true};
     ASSERT_TRUE(test::is_ok(editor.execute(del_v2_v3)));
 
     // 1. Move V1 by +2s (to 2s) with ignore_links = false: A1 moves too!
@@ -152,7 +151,8 @@ TEST(MoveClipsTest, NegativeStartGivesInvalidArgument) {
     const auto v_track_id = editor.snapshot()->sequences.at(main_seq_id).tracks[0].id;
     const auto v1_id = editor.snapshot()->sequences.at(main_seq_id).tracks[0].clips[0].id;
 
-    MoveClips cmd{main_seq_id, {{v1_id, model::TimelineTime::from_ticks(-core::kTicksPerSecond), v_track_id}}};
+    MoveClips cmd{main_seq_id,
+                  {{v1_id, model::TimelineTime::from_ticks(-core::kTicksPerSecond), v_track_id}}};
 
     auto res = editor.execute(cmd);
     ASSERT_FALSE(res.has_value());
@@ -218,14 +218,13 @@ TEST(MoveClipsTest, SwapLikeMovesSucceedWhenBothListed) {
     // Both V1 and V2 are 5s duration. V1 is 0..5s, V2 is 5..10s.
     // Swap: V2 to 0s, V1 to 5s.
     // Unlink V1 first to test swap cleanly
-    DeleteClips del_a1{main_seq_id,
-                       {editor.snapshot()->sequences.at(main_seq_id).tracks[1].clips[0].id},
-                       true};
+    DeleteClips del_a1{
+        main_seq_id, {editor.snapshot()->sequences.at(main_seq_id).tracks[1].clips[0].id}, true};
     ASSERT_TRUE(test::is_ok(editor.execute(del_a1)));
 
-    MoveClips swap_cmd{main_seq_id,
-                       {{v2_id, timeline_at_seconds(0), v_track_id},
-                        {v1_id, timeline_at_seconds(5), v_track_id}}};
+    MoveClips swap_cmd{
+        main_seq_id,
+        {{v2_id, timeline_at_seconds(0), v_track_id}, {v1_id, timeline_at_seconds(5), v_track_id}}};
 
     auto rt_res = test::round_trip(editor, swap_cmd);
     ASSERT_TRUE(test::is_ok(rt_res));

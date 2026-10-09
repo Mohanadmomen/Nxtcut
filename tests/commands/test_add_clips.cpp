@@ -9,9 +9,9 @@
 
 #include <gtest/gtest.h>
 
+#include "test_helper.hpp"
 #include <nxtcut_test/assertions.hpp>
 #include <nxtcut_test/model_fixtures.hpp>
-#include "test_helper.hpp"
 
 namespace nxtcut::commands {
 namespace {
@@ -100,7 +100,8 @@ TEST(AddClipsTest, VideoPlusAudioGroupGetsOneFreshLinkId) {
     a_clip.duration = duration_of_seconds(4);
     a_clip.content = model::AudioContent{video_media_id};
 
-    AddClips cmd{main_seq_id, timeline_at_seconds(20), {{v_track_id, v_clip}, {a_track_id, a_clip}}};
+    AddClips cmd{
+        main_seq_id, timeline_at_seconds(20), {{v_track_id, v_clip}, {a_track_id, a_clip}}};
 
     auto rt_res = test::round_trip(editor, cmd);
     ASSERT_TRUE(test::is_ok(rt_res));
@@ -269,8 +270,7 @@ TEST(AddClipsTest, AtWithOneTickOfNoiseSnapsToFrameBoundary) {
     new_img.duration = duration_of_seconds(3);
     new_img.content = model::ImageContent{image_media_id};
 
-    const auto noisy_at =
-        model::TimelineTime::from_ticks(timeline_at_seconds(15).ticks() + 1);
+    const auto noisy_at = model::TimelineTime::from_ticks(timeline_at_seconds(15).ticks() + 1);
 
     AddClips cmd{main_seq_id, noisy_at, {{v_track_id, new_img}}};
 

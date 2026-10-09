@@ -7,16 +7,16 @@
 #include <nxtcut/model/project.hpp>
 #include <nxtcut/model/time_coords.hpp>
 
+#include <gtest/gtest.h>
+
 #include <cstdint>
 #include <optional>
 #include <string>
 #include <vector>
 
-#include <gtest/gtest.h>
-
+#include "test_helper.hpp"
 #include <nxtcut_test/assertions.hpp>
 #include <nxtcut_test/model_fixtures.hpp>
-#include "test_helper.hpp"
 
 namespace nxtcut::commands {
 namespace {
@@ -52,8 +52,7 @@ TEST(RippleDeleteClipsTest, ClipOnAnotherUnlockedTrackShifts) {
     const auto main_seq_id = project.main_sequence;
 
     const auto video_media_id =
-        std::get<model::VideoContent>(
-            project.sequences.at(main_seq_id).tracks[0].clips[0].content)
+        std::get<model::VideoContent>(project.sequences.at(main_seq_id).tracks[0].clips[0].content)
             .media;
 
     // Add clip on audio track at 12..14s
@@ -89,8 +88,7 @@ TEST(RippleDeleteClipsTest, LockedTrackHoldingClipsIsUntouched) {
     const auto main_seq_id = project.main_sequence;
 
     const auto video_media_id =
-        std::get<model::VideoContent>(
-            project.sequences.at(main_seq_id).tracks[0].clips[0].content)
+        std::get<model::VideoContent>(project.sequences.at(main_seq_id).tracks[0].clips[0].content)
             .media;
 
     // Add 3rd track (Audio, locked) holding clip at 12..14s
@@ -166,8 +164,7 @@ TEST(RippleDeleteClipsTest, BlockedSameTrackOverlapFailsWithOverlapMessage) {
     project.sequences.at(main_seq_id).tracks[1].clips.clear();
 
     const auto video_media_id =
-        std::get<model::VideoContent>(
-            project.sequences.at(main_seq_id).tracks[0].clips[0].content)
+        std::get<model::VideoContent>(project.sequences.at(main_seq_id).tracks[0].clips[0].content)
             .media;
 
     // Clip C at 4..7s on audio track
@@ -235,8 +232,7 @@ TEST(RippleDeleteClipsTest, TwoNonAdjacentDeletedClipsShiftBySum) {
 
     // Add clip V4 at 20..25s
     const auto image_media_id =
-        std::get<model::ImageContent>(
-            project.sequences.at(main_seq_id).tracks[0].clips[1].content)
+        std::get<model::ImageContent>(project.sequences.at(main_seq_id).tracks[0].clips[1].content)
             .media;
 
     model::Clip v4;

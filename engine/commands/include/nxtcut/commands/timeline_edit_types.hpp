@@ -13,7 +13,7 @@ namespace nxtcut::commands {
  */
 enum class RippleScope {
     AllUnlockedTracks,  ///< Ripple shifts all unlocked tracks in the sequence.
-    EditedTracksOnly,    ///< Ripple shifts only the tracks containing edited/placed clips.
+    EditedTracksOnly,   ///< Ripple shifts only the tracks containing edited/placed clips.
 };
 
 /**

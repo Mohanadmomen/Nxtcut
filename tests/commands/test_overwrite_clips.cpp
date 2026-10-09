@@ -8,6 +8,8 @@
 #include <nxtcut/model/speed.hpp>
 #include <nxtcut/model/time_coords.hpp>
 
+#include <gtest/gtest.h>
+
 #include <cstdint>
 #include <limits>
 #include <optional>
@@ -15,11 +17,9 @@
 #include <utility>
 #include <vector>
 
-#include <gtest/gtest.h>
-
+#include "test_helper.hpp"
 #include <nxtcut_test/assertions.hpp>
 #include <nxtcut_test/model_fixtures.hpp>
-#include "test_helper.hpp"
 
 namespace nxtcut::commands {
 namespace {
@@ -342,7 +342,8 @@ TEST(OverwriteClipsTest, DuplicateDestinationTrackFailsWithDuplicateMessage) {
     clip2.duration = duration_of_seconds(2);
     clip2.content = model::ImageContent{image_media_id};
 
-    OverwriteClips cmd{main_seq_id, timeline_at_seconds(0), {{v_track_id, clip1}, {v_track_id, clip2}}};
+    OverwriteClips cmd{
+        main_seq_id, timeline_at_seconds(0), {{v_track_id, clip1}, {v_track_id, clip2}}};
 
     auto res = editor.execute(cmd);
     ASSERT_FALSE(res.has_value());

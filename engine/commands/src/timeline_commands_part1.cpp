@@ -1,6 +1,4 @@
 #include <nxtcut/commands/timeline_commands.hpp>
-#include "timeline_support.hpp"
-
 #include <nxtcut/core/error.hpp>
 #include <nxtcut/model/clip.hpp>
 #include <nxtcut/model/compound_graph.hpp>
@@ -18,6 +16,8 @@
 #include <utility>
 #include <variant>
 #include <vector>
+
+#include "timeline_support.hpp"
 
 namespace nxtcut::commands {
 
@@ -578,8 +578,7 @@ core::Result<ChangeSet> MoveClips::build(const model::Project& project,
                                 return core::make_error(core::ErrorCode::InvalidArgument,
                                                         "cannot move linked clip on locked track");
                             }
-                            const auto partner_new_start =
-                                detail::add_time(other_cl.start, delta);
+                            const auto partner_new_start = detail::add_time(other_cl.start, delta);
                             if (!partner_new_start.has_value()) {
                                 return tl::unexpected(partner_new_start.error());
                             }
@@ -677,8 +676,7 @@ core::Result<ChangeSet> DeleteClips::build(const model::Project& project,
         }
     }
 
-    std::vector<model::ClipId> to_delete =
-        ignore_links ? unique_ids : st.expand_links(unique_ids);
+    std::vector<model::ClipId> to_delete = ignore_links ? unique_ids : st.expand_links(unique_ids);
 
     for (const auto& cid : to_delete) {
         const auto [trk, cl] = st.find_clip(cid);

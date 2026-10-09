@@ -1,6 +1,4 @@
 #include <nxtcut/commands/timeline_commands.hpp>
-#include "timeline_support.hpp"
-
 #include <nxtcut/core/error.hpp>
 #include <nxtcut/core/frame_time.hpp>
 #include <nxtcut/core/mul_div.hpp>
@@ -21,6 +19,8 @@
 #include <utility>
 #include <variant>
 #include <vector>
+
+#include "timeline_support.hpp"
 
 namespace nxtcut::commands {
 
@@ -163,8 +163,8 @@ core::Result<ChangeSet> TrimClip::build(const model::Project& project,
             } else {
                 // Ripple head trim: clip keeps start, duration changes by dur_change,
                 // source_in advances by delta
-                const auto new_p_dur = detail::add_time(model::TimelineTime::zero(),
-                                                        cl->duration + dur_change);
+                const auto new_p_dur =
+                    detail::add_time(model::TimelineTime::zero(), cl->duration + dur_change);
                 if (!new_p_dur.has_value()) {
                     return tl::unexpected(new_p_dur.error());
                 }
@@ -174,9 +174,9 @@ core::Result<ChangeSet> TrimClip::build(const model::Project& project,
                 if (c_kind == model::ClipKind::Image || c_kind == model::ClipKind::Text) {
                     cl->source_in = model::SourceTime::zero();
                 } else {
-                    const auto scaled_res = core::mul_div(
-                        delta.ticks(), cl->speed.numerator(), cl->speed.denominator(),
-                        core::RoundingMode::Floor);
+                    const auto scaled_res =
+                        core::mul_div(delta.ticks(), cl->speed.numerator(), cl->speed.denominator(),
+                                      core::RoundingMode::Floor);
                     if (!scaled_res.has_value()) {
                         return tl::unexpected(scaled_res.error());
                     }
@@ -281,8 +281,7 @@ core::Result<ChangeSet> RippleDeleteClips::build(const model::Project& project,
         }
     }
 
-    std::vector<model::ClipId> to_delete =
-        ignore_links ? unique_ids : st.expand_links(unique_ids);
+    std::vector<model::ClipId> to_delete = ignore_links ? unique_ids : st.expand_links(unique_ids);
 
     for (const auto& cid : to_delete) {
         const auto [trk, cl] = st.find_clip(cid);
@@ -461,8 +460,7 @@ core::Result<ChangeSet> CloseGap::build(const model::Project& project,
     }
 
     if (next_clip == nullptr) {
-        return core::make_error(core::ErrorCode::InvalidArgument,
-                                "no clip found after gap");
+        return core::make_error(core::ErrorCode::InvalidArgument, "no clip found after gap");
     }
 
     const auto gap_start =
@@ -722,8 +720,7 @@ core::Result<ChangeSet> LinkClips::build(const model::Project& project,
             return core::make_error(core::ErrorCode::NotFound, "clip to link not found");
         }
         if (cl->link_id.has_value()) {
-            return core::make_error(core::ErrorCode::InvalidArgument,
-                                    "clip is already linked");
+            return core::make_error(core::ErrorCode::InvalidArgument, "clip is already linked");
         }
         if (trk->locked) {
             return core::make_error(core::ErrorCode::InvalidArgument,

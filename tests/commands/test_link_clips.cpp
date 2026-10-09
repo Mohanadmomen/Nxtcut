@@ -7,16 +7,16 @@
 #include <nxtcut/model/project.hpp>
 #include <nxtcut/model/time_coords.hpp>
 
+#include <gtest/gtest.h>
+
 #include <cstdint>
 #include <optional>
 #include <string>
 #include <vector>
 
-#include <gtest/gtest.h>
-
+#include "test_helper.hpp"
 #include <nxtcut_test/assertions.hpp>
 #include <nxtcut_test/model_fixtures.hpp>
-#include "test_helper.hpp"
 
 namespace nxtcut::commands {
 namespace {
@@ -31,8 +31,10 @@ TEST(LinkClipsTest, LinkTwoUnlinkedClipsGivesOneFreshLinkId) {
     const auto v2_id = editor.snapshot()->sequences.at(main_seq_id).tracks[0].clips[1].id;
     const auto v3_id = editor.snapshot()->sequences.at(main_seq_id).tracks[0].clips[2].id;
 
-    EXPECT_FALSE(editor.snapshot()->sequences.at(main_seq_id).tracks[0].clips[1].link_id.has_value());
-    EXPECT_FALSE(editor.snapshot()->sequences.at(main_seq_id).tracks[0].clips[2].link_id.has_value());
+    EXPECT_FALSE(
+        editor.snapshot()->sequences.at(main_seq_id).tracks[0].clips[1].link_id.has_value());
+    EXPECT_FALSE(
+        editor.snapshot()->sequences.at(main_seq_id).tracks[0].clips[2].link_id.has_value());
 
     LinkClips cmd{main_seq_id, {v2_id, v3_id}};
 

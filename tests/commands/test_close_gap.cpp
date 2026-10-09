@@ -9,9 +9,9 @@
 
 #include <gtest/gtest.h>
 
+#include "test_helper.hpp"
 #include <nxtcut_test/assertions.hpp>
 #include <nxtcut_test/model_fixtures.hpp>
-#include "test_helper.hpp"
 
 namespace nxtcut::commands {
 namespace {
@@ -26,8 +26,7 @@ TEST(CloseGapTest, ClosesGapAndShiftsOtherTracks) {
 
     // Build video track with clips 0..2s and 5..7s
     const auto video_media_id =
-        std::get<model::VideoContent>(
-            project.sequences.at(main_seq_id).tracks[0].clips[0].content)
+        std::get<model::VideoContent>(project.sequences.at(main_seq_id).tracks[0].clips[0].content)
             .media;
 
     project.sequences.at(main_seq_id).tracks[0].clips.clear();
@@ -119,8 +118,7 @@ TEST(CloseGapTest, LeadingGapShiftsToZero) {
     const auto main_seq_id = project.main_sequence;
 
     const auto video_media_id =
-        std::get<model::VideoContent>(
-            project.sequences.at(main_seq_id).tracks[0].clips[0].content)
+        std::get<model::VideoContent>(project.sequences.at(main_seq_id).tracks[0].clips[0].content)
             .media;
 
     // Track with single clip at 3..8s
@@ -177,8 +175,7 @@ TEST(CloseGapTest, OverlapOnAnotherTrackFailsWithOverlapMessage) {
     const auto main_seq_id = project.main_sequence;
 
     const auto video_media_id =
-        std::get<model::VideoContent>(
-            project.sequences.at(main_seq_id).tracks[0].clips[0].content)
+        std::get<model::VideoContent>(project.sequences.at(main_seq_id).tracks[0].clips[0].content)
             .media;
 
     // Video track with gap 2..5s (clips at 0..2s and 5..7s)

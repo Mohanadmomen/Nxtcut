@@ -8,6 +8,8 @@
 #include <nxtcut/model/speed.hpp>
 #include <nxtcut/model/time_coords.hpp>
 
+#include <gtest/gtest.h>
+
 #include <cstdint>
 #include <limits>
 #include <optional>
@@ -15,11 +17,9 @@
 #include <utility>
 #include <vector>
 
-#include <gtest/gtest.h>
-
+#include "test_helper.hpp"
 #include <nxtcut_test/assertions.hpp>
 #include <nxtcut_test/model_fixtures.hpp>
-#include "test_helper.hpp"
 
 namespace nxtcut::commands {
 namespace {
@@ -87,8 +87,7 @@ TEST(TrimClipTest, HeadTrimV2to7sWithoutRippleAdvancesSourceIn) {
 
     // Make V2 a Video clip referencing video.mp4 so we can test source_in advancement
     const auto video_media_id =
-        std::get<model::VideoContent>(
-            project.sequences.at(main_seq_id).tracks[0].clips[0].content)
+        std::get<model::VideoContent>(project.sequences.at(main_seq_id).tracks[0].clips[0].content)
             .media;
     project.sequences.at(main_seq_id).tracks[0].clips[1].content =
         model::VideoContent{video_media_id};
@@ -117,8 +116,7 @@ TEST(TrimClipTest, RippleHeadTrimKeepsStartAndShiftsLaterClips) {
     const auto main_seq_id = project.main_sequence;
 
     const auto video_media_id =
-        std::get<model::VideoContent>(
-            project.sequences.at(main_seq_id).tracks[0].clips[0].content)
+        std::get<model::VideoContent>(project.sequences.at(main_seq_id).tracks[0].clips[0].content)
             .media;
     project.sequences.at(main_seq_id).tracks[0].clips[1].content =
         model::VideoContent{video_media_id};
@@ -173,11 +171,10 @@ TEST(TrimClipTest, ExtendingTailBeyondMediaDurationFailsWithInvalidArgument) {
     const auto v1_id = editor.snapshot()->sequences.at(main_seq_id).tracks[0].clips[0].id;
 
     // Remove V2 and V3 so timeline has space
-    DeleteClips del_v2_v3{
-        main_seq_id,
-        {editor.snapshot()->sequences.at(main_seq_id).tracks[0].clips[1].id,
-         editor.snapshot()->sequences.at(main_seq_id).tracks[0].clips[2].id},
-        true};
+    DeleteClips del_v2_v3{main_seq_id,
+                          {editor.snapshot()->sequences.at(main_seq_id).tracks[0].clips[1].id,
+                           editor.snapshot()->sequences.at(main_seq_id).tracks[0].clips[2].id},
+                          true};
     ASSERT_TRUE(test::is_ok(editor.execute(del_v2_v3)));
 
     // Extend V1 tail to 65s (media duration is 60s)
@@ -216,8 +213,7 @@ TEST(TrimClipTest, RippleBlockedBySameTrackOverlapFailsWithOverlap) {
 
     // Add clip C (12..14s) on audio track
     const auto video_media_id =
-        std::get<model::VideoContent>(
-            project.sequences.at(main_seq_id).tracks[0].clips[0].content)
+        std::get<model::VideoContent>(project.sequences.at(main_seq_id).tracks[0].clips[0].content)
             .media;
 
     model::Clip clip_c;
@@ -261,8 +257,13 @@ TEST(TrimClipTest, IgnoreLinksLeavesPartnerAlone) {
     const auto v1_id = editor.snapshot()->sequences.at(main_seq_id).tracks[0].clips[0].id;
 
     // Tail trim V1 to 3s with ignore_links = true
-    TrimClip cmd{main_seq_id, v1_id, TrimEdge::Tail, timeline_at_seconds(3), false,
-                 RippleScope::AllUnlockedTracks, true};
+    TrimClip cmd{main_seq_id,
+                 v1_id,
+                 TrimEdge::Tail,
+                 timeline_at_seconds(3),
+                 false,
+                 RippleScope::AllUnlockedTracks,
+                 true};
 
     auto rt_res = test::round_trip(editor, cmd);
     ASSERT_TRUE(test::is_ok(rt_res));
@@ -349,8 +350,13 @@ TEST(TrimClipTest, AudioFadeHeadTrimSatisfiesValidate) {
 
     const auto a1_id = editor.snapshot()->sequences.at(main_seq_id).tracks[1].clips[0].id;
 
-    TrimClip cmd{main_seq_id, a1_id, TrimEdge::Head, timeline_at_seconds(4), false,
-                 RippleScope::AllUnlockedTracks, true};
+    TrimClip cmd{main_seq_id,
+                 a1_id,
+                 TrimEdge::Head,
+                 timeline_at_seconds(4),
+                 false,
+                 RippleScope::AllUnlockedTracks,
+                 true};
 
     auto rt_res = test::round_trip(editor, cmd);
     ASSERT_TRUE(test::is_ok(rt_res));
@@ -375,8 +381,13 @@ TEST(TrimClipTest, AudioFadeTailTrimSatisfiesValidate) {
 
     const auto a1_id = editor.snapshot()->sequences.at(main_seq_id).tracks[1].clips[0].id;
 
-    TrimClip cmd{main_seq_id, a1_id, TrimEdge::Tail, timeline_at_seconds(1), false,
-                 RippleScope::AllUnlockedTracks, true};
+    TrimClip cmd{main_seq_id,
+                 a1_id,
+                 TrimEdge::Tail,
+                 timeline_at_seconds(1),
+                 false,
+                 RippleScope::AllUnlockedTracks,
+                 true};
 
     auto rt_res = test::round_trip(editor, cmd);
     ASSERT_TRUE(test::is_ok(rt_res));
@@ -397,8 +408,13 @@ TEST(TrimClipTest, HeadTrimV1WithIgnoreLinksNormalAndSpeed2) {
         const auto main_seq_id = editor.snapshot()->main_sequence;
         const auto v1_id = editor.snapshot()->sequences.at(main_seq_id).tracks[0].clips[0].id;
 
-        TrimClip cmd{main_seq_id, v1_id, TrimEdge::Head, timeline_at_seconds(2), false,
-                     RippleScope::AllUnlockedTracks, true};
+        TrimClip cmd{main_seq_id,
+                     v1_id,
+                     TrimEdge::Head,
+                     timeline_at_seconds(2),
+                     false,
+                     RippleScope::AllUnlockedTracks,
+                     true};
 
         auto rt_res = test::round_trip(editor, cmd);
         ASSERT_TRUE(test::is_ok(rt_res));
@@ -422,8 +438,13 @@ TEST(TrimClipTest, HeadTrimV1WithIgnoreLinksNormalAndSpeed2) {
 
         const auto v1_id = editor.snapshot()->sequences.at(main_seq_id).tracks[0].clips[0].id;
 
-        TrimClip cmd{main_seq_id, v1_id, TrimEdge::Head, timeline_at_seconds(2), false,
-                     RippleScope::AllUnlockedTracks, true};
+        TrimClip cmd{main_seq_id,
+                     v1_id,
+                     TrimEdge::Head,
+                     timeline_at_seconds(2),
+                     false,
+                     RippleScope::AllUnlockedTracks,
+                     true};
 
         auto rt_res = test::round_trip(editor, cmd);
         ASSERT_TRUE(test::is_ok(rt_res));

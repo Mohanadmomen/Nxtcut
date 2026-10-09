@@ -8,6 +8,8 @@
 #include <nxtcut/model/speed.hpp>
 #include <nxtcut/model/time_coords.hpp>
 
+#include <gtest/gtest.h>
+
 #include <cstdint>
 #include <limits>
 #include <optional>
@@ -16,11 +18,9 @@
 #include <variant>
 #include <vector>
 
-#include <gtest/gtest.h>
-
+#include "test_helper.hpp"
 #include <nxtcut_test/assertions.hpp>
 #include <nxtcut_test/model_fixtures.hpp>
-#include "test_helper.hpp"
 
 namespace nxtcut::commands {
 namespace {
@@ -84,8 +84,7 @@ TEST(SplitClipTest, SplitSpeed2ClipAdvancesSourceInBy4s) {
     const auto main_seq_id = project.main_sequence;
 
     // Set V1 to speed 2/1, unlink to isolate
-    project.sequences.at(main_seq_id).tracks[0].clips[0].speed =
-        model::Speed::create(2, 1).value();
+    project.sequences.at(main_seq_id).tracks[0].clips[0].speed = model::Speed::create(2, 1).value();
     project.sequences.at(main_seq_id).tracks[0].clips[0].link_id = std::nullopt;
     project.sequences.at(main_seq_id).tracks[1].clips[0].link_id = std::nullopt;
 
@@ -141,8 +140,7 @@ TEST(SplitClipTest, AtWithOneTickOfNoiseSnapsTo2s) {
     const auto main_seq_id = editor.snapshot()->main_sequence;
     const auto v1_id = editor.snapshot()->sequences.at(main_seq_id).tracks[0].clips[0].id;
 
-    const auto noisy_at =
-        model::TimelineTime::from_ticks(timeline_at_seconds(2).ticks() + 1);
+    const auto noisy_at = model::TimelineTime::from_ticks(timeline_at_seconds(2).ticks() + 1);
 
     SplitClip cmd{main_seq_id, v1_id, noisy_at, false};
 

@@ -31,7 +31,9 @@ void fit_audio_fades(model::Clip& clip) noexcept {
     if (audio.fade_in > clip.duration) {
         audio.fade_in = clip.duration;
     }
-    const auto max_fade_out = core::Duration::from_ticks(clip.duration.ticks() - audio.fade_in.ticks()); if (audio.fade_out > max_f
+    const auto max_fade_out =
+        core::Duration::from_ticks(clip.duration.ticks() - audio.fade_in.ticks());
+    if (audio.fade_out > max_fade_out) {
         audio.fade_out = max_fade_out;
     }
 }
@@ -180,8 +182,7 @@ core::Status ScratchTimeline::validate_clip_media_and_source(const model::Clip& 
         const auto source_end =
             model::detail::checked_add(cl.source_in.ticks(), span_res.value().ticks());
         if (!source_end.has_value()) {
-            return core::make_error(core::ErrorCode::Overflow,
-                                    "source range arithmetic overflow");
+            return core::make_error(core::ErrorCode::Overflow, "source range arithmetic overflow");
         }
         if (*source_end > limit_ticks) {
             return core::make_error(core::ErrorCode::InvalidArgument,
@@ -239,7 +240,8 @@ core::Status ScratchTimeline::validate_clip_media_and_source(const model::Clip& 
                                             "text clip must have source_in zero and 1/1 speed");
                 }
                 return core::Status{};
-            } else if constexpr (std::is_same_v<T, model::CompoundContent>) {
+            } else {
+                static_assert(std::is_same_v<T, model::CompoundContent>);
                 const auto* nested_seq = model::find_sequence(project_, c.sequence);
                 if (nested_seq == nullptr) {
                     return core::make_error(core::ErrorCode::InvalidArgument,
@@ -352,7 +354,8 @@ core::Status ScratchTimeline::trim_head(model::Clip& clip, model::TimelineTime n
                                 "head trim must be before clip end");
     }
 
-    const auto old_start = clip.start; const model::Clip original_clip = clip;
+    const auto old_start = clip.start;
+    const model::Clip original_clip = clip;
     const auto new_dur_res = diff_time(*end_res, new_start);
     if (!new_dur_res.has_value()) {
         return tl::unexpected(new_dur_res.error());

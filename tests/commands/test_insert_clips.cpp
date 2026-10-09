@@ -7,6 +7,8 @@
 #include <nxtcut/model/project.hpp>
 #include <nxtcut/model/time_coords.hpp>
 
+#include <gtest/gtest.h>
+
 #include <cstdint>
 #include <limits>
 #include <optional>
@@ -14,11 +16,9 @@
 #include <utility>
 #include <vector>
 
-#include <gtest/gtest.h>
-
+#include "test_helper.hpp"
 #include <nxtcut_test/assertions.hpp>
 #include <nxtcut_test/model_fixtures.hpp>
-#include "test_helper.hpp"
 
 namespace nxtcut::commands {
 namespace {
@@ -160,7 +160,8 @@ TEST(InsertClipsTest, InsertAt2sVideoAudioGroupSplitsLinkedV1AndA1) {
     a_clip.duration = duration_of_seconds(3);
     a_clip.content = model::AudioContent{video_media_id};
 
-    InsertClips cmd{main_seq_id, timeline_at_seconds(2), {{v_track_id, v_clip}, {a_track_id, a_clip}}};
+    InsertClips cmd{
+        main_seq_id, timeline_at_seconds(2), {{v_track_id, v_clip}, {a_track_id, a_clip}}};
 
     auto rt_res = test::round_trip(editor, cmd);
     ASSERT_TRUE(test::is_ok(rt_res));
@@ -218,8 +219,7 @@ TEST(InsertClipsTest, ScopeEditedTracksOnlyVsAllUnlockedTracks) {
     extra_track.locked = false;
 
     const auto video_media_id =
-        std::get<model::VideoContent>(
-            project.sequences.at(main_seq_id).tracks[0].clips[0].content)
+        std::get<model::VideoContent>(project.sequences.at(main_seq_id).tracks[0].clips[0].content)
             .media;
 
     model::Clip extra_clip;
@@ -245,7 +245,9 @@ TEST(InsertClipsTest, ScopeEditedTracksOnlyVsAllUnlockedTracks) {
     new_img.content = model::ImageContent{image_media_id};
 
     // 1. With EditedTracksOnly: clip on 3rd track does NOT move
-    InsertClips cmd_edited{main_seq_id, timeline_at_seconds(7), {{v_track_id, new_img}},
+    InsertClips cmd_edited{main_seq_id,
+                           timeline_at_seconds(7),
+                           {{v_track_id, new_img}},
                            RippleScope::EditedTracksOnly};
     ASSERT_TRUE(test::is_ok(test::round_trip(editor, cmd_edited)));
     EXPECT_EQ(editor.snapshot()->sequences.at(main_seq_id).tracks[2].clips[0].start,
@@ -255,7 +257,9 @@ TEST(InsertClipsTest, ScopeEditedTracksOnlyVsAllUnlockedTracks) {
     static_cast<void>(editor.undo());
 
     // 2. With AllUnlockedTracks: clip on 3rd track DOES move
-    InsertClips cmd_all{main_seq_id, timeline_at_seconds(7), {{v_track_id, new_img}},
+    InsertClips cmd_all{main_seq_id,
+                        timeline_at_seconds(7),
+                        {{v_track_id, new_img}},
                         RippleScope::AllUnlockedTracks};
     ASSERT_TRUE(test::is_ok(test::round_trip(editor, cmd_all)));
     EXPECT_EQ(editor.snapshot()->sequences.at(main_seq_id).tracks[2].clips[0].start,
@@ -359,8 +363,8 @@ TEST(InsertClipsTest, TwoClipsOf2sAnd3sShiftLaterClipsBy3s) {
     // Insert at 5s: V2 on main track was at 5..10s, V3 at 10..15s.
     // delta = max(2s, 3s) = 3s.
     // V2 shifts to 8..13s, V3 shifts to 13..18s.
-    InsertClips cmd{main_seq_id, timeline_at_seconds(5),
-                    {{v1_track_id, clip2s}, {v2_track_id, clip3s}}};
+    InsertClips cmd{
+        main_seq_id, timeline_at_seconds(5), {{v1_track_id, clip2s}, {v2_track_id, clip3s}}};
 
     auto rt_res = test::round_trip(editor, cmd);
     ASSERT_TRUE(test::is_ok(rt_res));
@@ -399,8 +403,11 @@ TEST(InsertClipsTest, InsertWithLockedPartnerInEditedTracksOnlyScopeFailsWithLoc
     new_img.duration = duration_of_seconds(2);
     new_img.content = model::ImageContent{image_media_id};
 
-    // 1. EditedTracksOnly: straddles V1 at 2s -> partner A1 is on locked audio track -> fails with "locked"
-    InsertClips fail_cmd{main_seq_id, timeline_at_seconds(2), {{v_track_id, new_img}},
+    // 1. EditedTracksOnly: straddles V1 at 2s -> partner A1 is on locked audio track -> fails with
+    // "locked"
+    InsertClips fail_cmd{main_seq_id,
+                         timeline_at_seconds(2),
+                         {{v_track_id, new_img}},
                          RippleScope::EditedTracksOnly};
     auto before_snap = editor.snapshot();
     auto fail_res = editor.execute(fail_cmd);
@@ -410,7 +417,9 @@ TEST(InsertClipsTest, InsertWithLockedPartnerInEditedTracksOnlyScopeFailsWithLoc
     EXPECT_TRUE(model::identical(*editor.snapshot(), *before_snap));
 
     // 2. AllUnlockedTracks: locked audio track excluded from ripple scope -> succeeds
-    InsertClips succ_cmd{main_seq_id, timeline_at_seconds(2), {{v_track_id, new_img}},
+    InsertClips succ_cmd{main_seq_id,
+                         timeline_at_seconds(2),
+                         {{v_track_id, new_img}},
                          RippleScope::AllUnlockedTracks};
     auto rt_res = test::round_trip(editor, succ_cmd);
     ASSERT_TRUE(test::is_ok(rt_res));
