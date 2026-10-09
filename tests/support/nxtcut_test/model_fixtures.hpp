@@ -13,8 +13,17 @@
 #include <nxtcut/model/track.hpp>
 
 #include <cstdint>
+#include <vector>
 
 namespace nxtcut::model::test {
+
+[[nodiscard]] inline model::TimelineTime timeline_at_seconds(std::int64_t whole_seconds) {
+    return model::TimelineTime::from_ticks(whole_seconds * core::kTicksPerSecond);
+}
+
+[[nodiscard]] inline core::Duration duration_of_seconds(std::int64_t whole_seconds) {
+    return core::Duration::from_ticks(whole_seconds * core::kTicksPerSecond);
+}
 
 /**
  * @brief Helper that constructs a completely valid sample project with no validation issues.
@@ -35,23 +44,36 @@ namespace nxtcut::model::test {
  * @param seed Seed for deterministic UuidGenerator reproducibility.
  * @return Fully formed, valid Project.
  */
-inline Project build_valid_project(std::uint64_t seed = 42ULL) {
-    core::UuidGenerator gen(seed);
-
-    const MediaId video_media_id = generate_id<MediaId>(gen);
-    const MediaId image_media_id = generate_id<MediaId>(gen);
-    const SequenceId seq1_id = generate_id<SequenceId>(gen);
-    const SequenceId seq2_id = generate_id<SequenceId>(gen);
-    const TrackId sub_track_id = generate_id<TrackId>(gen);
-    const TrackId main_vtrack_id = generate_id<TrackId>(gen);
-    const TrackId main_atrack_id = generate_id<TrackId>(gen);
-    const ClipId sub_clip_id = generate_id<ClipId>(gen);
-    const ClipId video_clip_id = generate_id<ClipId>(gen);
-    const ClipId audio_clip_id = generate_id<ClipId>(gen);
-    const ClipId image_clip_id = generate_id<ClipId>(gen);
-    const ClipId compound_clip_id = generate_id<ClipId>(gen);
-    const LinkId link_id = generate_id<LinkId>(gen);
-    const ProjectId project_id = generate_id<ProjectId>(gen);
+[[nodiscard]] inline Project build_valid_project(core::UuidGenerator& ids) {
+    // Fixed ID generation order:
+    // 1. video_media_id (MediaId)
+    // 2. image_media_id (MediaId)
+    // 3. seq1_id (SequenceId)
+    // 4. seq2_id (SequenceId)
+    // 5. sub_track_id (TrackId)
+    // 6. main_vtrack_id (TrackId)
+    // 7. main_atrack_id (TrackId)
+    // 8. sub_clip_id (ClipId)
+    // 9. video_clip_id (ClipId)
+    // 10. audio_clip_id (ClipId)
+    // 11. image_clip_id (ClipId)
+    // 12. compound_clip_id (ClipId)
+    // 13. link_id (LinkId)
+    // 14. project_id (ProjectId)
+    const MediaId video_media_id = generate_id<MediaId>(ids);
+    const MediaId image_media_id = generate_id<MediaId>(ids);
+    const SequenceId seq1_id = generate_id<SequenceId>(ids);
+    const SequenceId seq2_id = generate_id<SequenceId>(ids);
+    const TrackId sub_track_id = generate_id<TrackId>(ids);
+    const TrackId main_vtrack_id = generate_id<TrackId>(ids);
+    const TrackId main_atrack_id = generate_id<TrackId>(ids);
+    const ClipId sub_clip_id = generate_id<ClipId>(ids);
+    const ClipId video_clip_id = generate_id<ClipId>(ids);
+    const ClipId audio_clip_id = generate_id<ClipId>(ids);
+    const ClipId image_clip_id = generate_id<ClipId>(ids);
+    const ClipId compound_clip_id = generate_id<ClipId>(ids);
+    const LinkId link_id = generate_id<LinkId>(ids);
+    const ProjectId project_id = generate_id<ProjectId>(ids);
 
     MediaAsset video_asset;
     video_asset.id = video_media_id;
@@ -162,6 +184,20 @@ inline Project build_valid_project(std::uint64_t seed = 42ULL) {
     project.main_sequence = seq1_id;
 
     return project;
+}
+
+/**
+ * @brief Helper that constructs a completely valid sample project with no validation issues.
+ *
+ * Creates a local UuidGenerator seeded with the provided seed and delegates to the generator
+ * overload.
+ *
+ * @param seed Seed for deterministic UuidGenerator reproducibility (default: 42ULL).
+ * @return Fully formed, valid Project.
+ */
+[[nodiscard]] inline Project build_valid_project(std::uint64_t seed = 42ULL) {
+    core::UuidGenerator gen(seed);
+    return build_valid_project(gen);
 }
 
 /**

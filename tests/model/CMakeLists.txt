@@ -6,6 +6,7 @@ nxtcut_add_module_test(
         clip_test.cpp
         compound_graph_test.cpp
         effect_test.cpp
+        equality_test.cpp
         ids_test.cpp
         media_test.cpp
         project_test.cpp
@@ -16,4 +17,6 @@ nxtcut_add_module_test(
         track_test.cpp
         transform_test.cpp
         validation_test.cpp
+    DEPENDS
+        nxtcut_test_support
 )

@@ -1,0 +1,29 @@
+nxtcut_add_module(
+    NAME commands
+    SOURCES
+        src/apply.cpp
+        src/change_set.cpp
+        src/clip_commands.cpp
+        src/editor.cpp
+        src/history.cpp
+        src/marker_commands.cpp
+        src/media_commands.cpp
+        src/project_commands.cpp
+        src/sequence_commands.cpp
+        src/track_commands.cpp
+    HEADERS
+        include/nxtcut/commands/apply.hpp
+        include/nxtcut/commands/change_set.hpp
+        include/nxtcut/commands/clip_commands.hpp
+        include/nxtcut/commands/edit_command.hpp
+        include/nxtcut/commands/editor.hpp
+        include/nxtcut/commands/history.hpp
+        include/nxtcut/commands/marker_commands.hpp
+        include/nxtcut/commands/media_commands.hpp
+        include/nxtcut/commands/project_commands.hpp
+        include/nxtcut/commands/sequence_commands.hpp
+        include/nxtcut/commands/track_commands.hpp
+    DEPENDS
+        nxtcut::core
+        nxtcut::model
+)

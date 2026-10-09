@@ -143,3 +143,18 @@ Validation issues are emitted in the following deterministic sequence:
 - Link timing: validation checks that a `LinkId` is shared by at least two clips in one sequence, not that the linked clips line up in time.
 - Effect types: `EffectInstance::effect_type` is an opaque string; whether an effect exists is decided by the effects module and plugins.
 - Shape, mask and Lottie clip kinds arrive in later steps.
+
+---
+
+## Exact Value Comparison (`identical`)
+
+To detect no-op mutations and verify snapshot identity in tests without altering value semantics, `nxtcut::model::identical` provides exact field-by-field equality comparisons (`identical(const X&, const X&)`) across model structures:
+- **Bit-Exact Floating-Point Comparisons**: All `double` values (such as `Property<double>`) and `float` color channels (inside `core::Color`) are compared bit-for-bit using `std::bit_cast` to same-size unsigned integers (`std::uint64_t` and `std::uint32_t`). Under this rule:
+  - `0.0` and `-0.0` evaluate as **different** (differing sign bit).
+  - Two identical quiet NaN values evaluate as **identical** (identical bit pattern).
+- **Composite Types**:
+  - `std::map` and `std::vector` compare sizes and elements in order.
+  - Variants (`ClipContent`, `EffectParam`) compare the alternative index and active value.
+  - Durations and timestamps compare integer ticks.
+  - `Speed` compares via `operator==`.
+- **No `operator==`**: Model types deliberately omit `operator==` to prevent accidental lossy or floating-point-compromised comparisons.
