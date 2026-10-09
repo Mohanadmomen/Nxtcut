@@ -10,7 +10,21 @@ nxtcut_add_module_test(
         media_commands_test.cpp
         project_commands_test.cpp
         sequence_commands_test.cpp
+        test_add_clips.cpp
+        test_close_gap.cpp
+        test_delete_clips.cpp
+        test_insert_clips.cpp
+        test_join_clips.cpp
+        test_link_clips.cpp
+        test_move_clips.cpp
+        test_overwrite_clips.cpp
+        test_ripple_delete_clips.cpp
+        test_split_clip.cpp
+        test_timeline_edits_editor.cpp
+        test_trim_clip.cpp
+        test_unlink_clips.cpp
         track_commands_test.cpp
     DEPENDS
         nxtcut_test_support
 )
+

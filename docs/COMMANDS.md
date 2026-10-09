@@ -137,8 +137,79 @@ When `EditorOptions::validate_on_commit` is enabled (default `true`):
 - A ChangeSet stores full copies of the clips it changes, so memory use grows with the size of the edit, not with the size of the project.
 
 ---
+## Step 3B Timeline Editing Commands
+
+Step 3B introduces 12 timeline geometry editing commands. All timeline edits operate transactionally through `ChangeSet`s of `ClipChange` records without per-command undo code.
+
+### General Design & Conventions
+
+#### 1. Frame Snapping Rule
+All timeline times (`TimelineTime`) and durations (`core::Duration`) supplied to a timeline command are snapped to the sequence's discrete frame grid using `core::snap_to_frame(..., sequence.frame_rate, core::RoundingMode::Nearest)`.
+- A supplied duration that snaps to less than one frame (i.e. `< frame_duration(sequence.frame_rate)`) is rejected with `ErrorCode::InvalidArgument`.
+- Edits snap to the nearest frame boundary to guarantee zero accumulated subframe drift.
+
+#### 2. Ripple Scopes
+- **`RippleScope::AllUnlockedTracks`** (Default): Shifts all unlocked tracks across the sequence (sync-lock behavior matching industry standard NLEs). Locked tracks are excluded from the ripple scope and are untouched; their presence outside the ripple scope is not an error.
+- **`RippleScope::EditedTracksOnly`**: Restricts ripple shifts solely to the tracks containing the edited or placed clips (including tracks of linked partners that were affected). If any track in the scope (including an included partner track) is locked, the command fails immediately with `ErrorCode::InvalidArgument` containing `"locked"`.
+
+#### 3. Link Coordination & Link Repair
+- **Default Grouping**: Linked clips (sharing the same `LinkId` within the sequence) are edited together by default unless `ignore_links == true`.
+- **Placement Coordination**: When adding, inserting, or overwriting multiple `PlacedClip` items, all new clips share ONE fresh `LinkId` (the video-plus-audio pair scenario). When placing exactly one clip, `link_id` is cleared (`nullopt`).
+- **Split Link Rule**: In a split operation, left halves retain their original `LinkId`. Right halves originating from the same link group share ONE newly generated `LinkId` in deterministic first-seen order if there are at least 2 right halves; otherwise the single right half has no link (`nullopt`).
+- **Link Repair**: After any timeline modification, if fewer than 2 clips with a given touched `LinkId` remain in the sequence, the surviving clip's `link_id` is set to `nullopt` (identical to the invariant maintained by `RemoveTrack`). If clearing a survivor's link would mutate a clip on a locked track, the entire command fails immediately with `ErrorCode::InvalidArgument` containing `"locked"`.
+
+#### 4. Overlap & Timeline Invariants
+- **No Silent Overlaps**: On every touched track, no clip may start before the latest end time of clips preceding it in start order (`[t_1, t_2)` and `[t_2, t_3)` touching boundaries are permitted). Overlaps result in `ErrorCode::InvalidArgument` containing `"overlap"`.
+- **Non-Negative Start**: Every clip's start time must be non-negative (`>= 0`).
+- **Checked Arithmetic**: All time math operations use checked arithmetic (`model::detail::checked_add` and `checked_sub`). Arithmetic overflow returns `ErrorCode::Overflow`. Overflow of any time computation, including from user-supplied times (such as extreme timeline positions, trim edges, or durations), returns an error and never throws.
+- **Audio Fade Fitting**: Whenever an audio clip's duration shrinks or a clip is split (in `split_clip`, `trim_head`, `trim_tail`, ripple head trims, or overwrite strictly-contains splits), audio fades are fitted using `fit_audio_fades`: if `fade_in > clip.duration`, `fade_in = clip.duration`; if `fade_out > clip.duration`, `fade_out = clip.duration`.
+- **Source Range Bounds**: Every created or modified clip must respect source bounds: `source_in >= 0` and `source_in + source_span <= media.duration` (or nested sequence duration for compound clips). Image and text clips require `source_in == 0` and `speed == 1/1`. Violations return `ErrorCode::InvalidArgument`.
+- **Compound Cycles**: Placing or modifying a compound clip checks `model::would_create_cycle`; cycles are rejected with `ErrorCode::InvalidArgument`.
+- **Track Kind Compatibility**: Video tracks admit Video, Image, Text, and Compound clips. Audio tracks admit only Audio clips. Mismatches return `ErrorCode::InvalidArgument`.
+
+#### 5. Locked Track Enforcement
+Locked tracks are enforced strictly within command `build()` methods:
+- If ANY track directly modified, included by link expansion, or designated as an edit destination is locked, the command fails immediately with `ErrorCode::InvalidArgument` containing `"locked"`.
+- In `InsertClips`, after the scope tracks are computed (including partner tracks added under `EditedTracksOnly`), if ANY track in the scope is locked, the command fails immediately with `ErrorCode::InvalidArgument` containing `"locked"`.
+- If link repair attempts to clear a link on a surviving clip that resides on a locked track, the entire command fails immediately with `ErrorCode::InvalidArgument` containing `"locked"`.
+- Locked tracks outside the ripple scope remain completely untouched and do not cause failure.
+
+#### 6. Cross-Track Moves and EditReceipts
+When a clip moves to another track, it is recorded as a removal on the source track (`before` present, `after` empty) and an addition on the destination track (`before` empty, `after` present) with the same `ClipId`. Because `receipt_of` collects all `ClipChange` records where `!change.before.has_value() && change.after.has_value()`, the moved clip's `ClipId` appears in `EditReceipt::created_clips`.
+
+#### 7. Thread Safety
+All timeline commands are immutable plain data structs. `build(const Project&, core::UuidGenerator&)` is `const`, pure, and re-entrant.
+
+---
+
+### Part 1 Commands Reference
+
+| Command | Arguments | Business & Validation Rules |
+| :--- | :--- | :--- |
+| `AddClips` | `sequence`, `at`, `clips` (`vector<PlacedClip>`) | Places clips at `snap(at)` without moving existing material. Fails with `"overlap"` if any placed clip collides with existing clips. Single placed clip has no link; multiple placed clips share ONE fresh `LinkId`. Destination tracks must exist, be unlocked, and match clip content kinds. Receipt lists created clip IDs. |
+| `InsertClips` | `sequence`, `at`, `clips`, `scope` | Insert edit. `delta` = maximum snapped duration among `clips`. On all scope tracks (destination tracks always in scope): clips straddling `at` (`start < at < end`) are split at `at`; clips with `start >= at` shift later by `delta`. New clips are inserted at `at`. Inserting at clip boundary splits nothing. If ANY track in scope is locked (including partner tracks added under `EditedTracksOnly`), fails with `"locked"`; locked non-destination track outside scope is untouched. |
+| `OverwriteClips` | `sequence`, `at`, `clips` | Places clips at `snap(at)` and removes covered material on destination tracks only. Duplicate destination tracks in `clips` are rejected with `ErrorCode::InvalidArgument` containing `"duplicate"`. Fully covered clips are removed; clips covered at head or tail are trimmed; clips strictly containing the placed range are split into two with the middle excised (right half gets a fresh `ClipId`). Overwriting empty space acts as `AddClips`. Audio fades are fitted on split halves (`fit_audio_fades`). Link repair applies (failing with `"locked"` if a survivor is on a locked track). Destination tracks must be unlocked. |
+| `MoveClips` | `sequence`, `moves` (`vector<ClipMove>`), `ignore_links` | Moves clips to `snap(new_start)` and/or `new_track` preserving duration. Unless `ignore_links`, linked partners move by the same delta on their own tracks. Moving clips are detached from scratch tracks before reinsertion (enabling swap moves of equal duration). Overlap check runs on the final state. Move changing nothing returns empty `ChangeSet`. Source/destination tracks must be unlocked. |
+| `DeleteClips` | `sequence`, `clip_ids`, `ignore_links` | Lift delete: removes clips (and linked partners unless `ignore_links`), leaving gaps. Subsequent clips do not shift. Duplicate IDs are de-duplicated. Link repair applies. Locked track of any deleted clip or affected partner fails with `"locked"`. Unknown clip returns `NotFound`. |
+| `SplitClip` | `sequence`, `clip`, `at`, `ignore_links` | Splits clip at `snap(at)` (`start < at < end` strictly inside). Unless `ignore_links`, linked partners containing `at` are split on their tracks at the same time. Left halves keep original `ClipId` and `LinkId`; right halves share ONE new `LinkId` in deterministic first-seen order if $\ge 2$ right halves originate from the same group. Audio fade-out becomes 0 on left; fade-in becomes 0 on right; fades are fitted via `fit_audio_fades`. Right halves appear in `created_clips`. |
+
+---
+
+### Part 2 Commands Reference
+
+| Command | Arguments | Business & Validation Rules |
+| :--- | :--- | :--- |
+| `TrimClip` | `sequence`, `clip`, `edge`, `new_edge`, `ripple`, `scope`, `ignore_links` | Moves edge to `snap(new_edge)` leaving at least 1 frame. Non-ripple: trimmed edge moves without shifting other clips; fails with `"overlap"` if extended into another clip. Ripple: head trim keeps original `start` with `source_in` advanced; clips starting at or after the edited clip's original end shift by the duration delta across scope tracks. Linked partners move by matching delta unless `ignore_links`. Audio fades are fitted via `fit_audio_fades`. Source bounds enforced. No-op returns empty `ChangeSet`. |
+| `RippleDeleteClips` | `sequence`, `clip_ids`, `scope`, `ignore_links` | Deletes clips (and linked partners unless `ignore_links`), then closes removed time. Deleted ranges across tracks merge into disjoint intervals $[A_i, B_i)$. Remaining clips on scope tracks with `start >= B_i` shift earlier by cumulative closed lengths. Clips overlapping an interval do not shift. If shift causes overlap, fails with `"overlap"`. Deleted clip on locked track fails with `"locked"`. |
+| `CloseGap` | `sequence`, `track`, `at`, `scope` | `snap(at)` must lie in an empty gap on `track` preceding a subsequent clip. Fails if `at` is inside a clip or no clip follows. Shifts all clips starting at or after the gap's end earlier by the gap length across scope tracks. Fails with `"overlap"` if collision occurs on any track. Track must be unlocked. |
+| `JoinClips` | `sequence`, `pairs` (`vector<JoinPair>`) | Recombines adjacent split halves on the same track. Requires matching media, identical speed, contiguous source (`second.source_in == first.end_source`), and identical properties. Restores `first`'s `ClipId` with combined duration; for audio, restores `first.fade_in` and `second.fade_out`. Image clips bypass source checks. Text/compound clips rejected. Link repair applies. |
+| `LinkClips` | `sequence`, `clip_ids` | Groups $\ge 2$ unlinked clips with ONE fresh `LinkId`. Fails with `"already linked"` if any specified clip currently holds a link. Tracks of all affected clips must be unlocked. |
+| `UnlinkClips` | `sequence`, `clip_ids`, `ignore_links` | Clears link associations. Unless `ignore_links`, clears the entire link group of each named clip; with `ignore_links`, clears only named clips and link repair removes orphan links (< 2 members). Unlinking unlinked clips returns an empty `ChangeSet`. Locked tracks of affected clips fail with `"locked"`. |
+
+---
 ## Roadmap: Steps 3B and 3C
 
-Step 3A establishes the core transactional mutation foundation. Subsequent steps will build upon this engine:
-- **Step 3B**: Timeline geometry edits (insert edit, overwrite edit, timeline clip move, split clip, join clips, trim head/tail, ripple delete, close gap, linked audio/video edit coordination).
-- **Step 3C**: Advanced trimming modes (roll edit, slip edit, slide edit, rate-stretch edit, timeline track push/pull).
+- **Step 3B (Implemented)**: 12 timeline geometry editing commands (`AddClips`, `InsertClips`, `OverwriteClips`, `MoveClips`, `DeleteClips`, `SplitClip`, `TrimClip`, `RippleDeleteClips`, `CloseGap`, `JoinClips`, `LinkClips`, `UnlinkClips`) with frame snapping, ripple scoping, linked audio/video edit coordination, deterministic ID generation order, fade fitting, and transactional undo/redo via `ChangeSet`.
+- **Step 3C (Next)**: Advanced trimming modes (roll edit, slip edit, slide edit, rate-stretch edit, timeline track push/pull).
+
+
