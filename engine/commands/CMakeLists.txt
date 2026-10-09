@@ -10,6 +10,9 @@ nxtcut_add_module(
         src/media_commands.cpp
         src/project_commands.cpp
         src/sequence_commands.cpp
+        src/timeline_commands_part1.cpp
+        src/timeline_commands_part2.cpp
+        src/timeline_support.cpp
         src/track_commands.cpp
     HEADERS
         include/nxtcut/commands/apply.hpp
@@ -22,8 +25,11 @@ nxtcut_add_module(
         include/nxtcut/commands/media_commands.hpp
         include/nxtcut/commands/project_commands.hpp
         include/nxtcut/commands/sequence_commands.hpp
+        include/nxtcut/commands/timeline_commands.hpp
+        include/nxtcut/commands/timeline_edit_types.hpp
         include/nxtcut/commands/track_commands.hpp
     DEPENDS
         nxtcut::core
         nxtcut::model
 )
+
