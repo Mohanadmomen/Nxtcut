@@ -58,7 +58,6 @@ core::Result<ChangeSet> TrimClip::build(const model::Project& project,
     }
     const auto orig_end = orig_end_res.value();
     const auto orig_start = orig_clip->start;
-    const auto orig_dur = orig_clip->duration;
 
     const auto frame_dur_res = core::frame_duration(st.sequence().frame_rate);
     if (!frame_dur_res.has_value()) {
