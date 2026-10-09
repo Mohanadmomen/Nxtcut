@@ -7,9 +7,16 @@
 #include <nxtcut/model/ids.hpp>
 
 #include <algorithm>
+#include <cstddef>
+#include <cstdint>
+#include <limits>
+#include <optional>
+#include <string>
+#include <type_traits>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
+#include <variant>
 #include <vector>
 
 namespace nxtcut::commands {
@@ -61,7 +68,11 @@ core::Result<ChangeSet> AddClips::build(const model::Project& project,
 
     for (const auto& pc : clips) {
         auto* trk = st.find_track(pc.track);
-        const auto snap_dur = st.snap_duration(pc.clip.duration).value();
+        const auto snap_dur_res = st.snap_duration(pc.clip.duration);
+        if (!snap_dur_res.has_value()) {
+            return tl::unexpected(snap_dur_res.error());
+        }
+        const auto snap_dur = *snap_dur_res;
 
         model::Clip new_clip = pc.clip;
         new_clip.id = model::generate_id<model::ClipId>(ids);
@@ -174,6 +185,15 @@ core::Result<ChangeSet> InsertClips::build(const model::Project& project,
         }
     }
 
+    // If any track in scope is locked, fail with locked message
+    for (const auto& tid : scope_tracks) {
+        const auto* trk = st.find_track(tid);
+        if (trk != nullptr && trk->locked) {
+            return core::make_error(core::ErrorCode::InvalidArgument,
+                                    "cannot insert clips: locked track in ripple scope");
+        }
+    }
+
     // Split straddling clips on scope tracks
     struct SplitEntry {
         model::TrackId track;
@@ -209,15 +229,21 @@ core::Result<ChangeSet> InsertClips::build(const model::Project& project,
         }
     }
 
-    // Coordinate links for right halves of splits
+    // Coordinate links for right halves of splits (in first-seen order)
+    std::vector<model::LinkId> link_order;
     std::unordered_map<model::LinkId, std::vector<std::size_t>> right_link_groups;
     for (std::size_t i = 0; i < splits.size(); ++i) {
         if (splits[i].orig_link.has_value()) {
-            right_link_groups[*splits[i].orig_link].push_back(i);
+            const auto lid = *splits[i].orig_link;
+            if (!right_link_groups.contains(lid)) {
+                link_order.push_back(lid);
+            }
+            right_link_groups[lid].push_back(i);
         }
     }
 
-    for (auto& [orig_lid, indices] : right_link_groups) {
+    for (const auto& orig_lid : link_order) {
+        const auto& indices = right_link_groups[orig_lid];
         if (indices.size() >= 2) {
             const auto new_lid = model::generate_id<model::LinkId>(ids);
             for (std::size_t idx : indices) {
@@ -261,7 +287,11 @@ core::Result<ChangeSet> InsertClips::build(const model::Project& project,
 
     for (const auto& pc : clips) {
         auto* trk = st.find_track(pc.track);
-        const auto snap_dur = st.snap_duration(pc.clip.duration).value();
+        const auto snap_dur_res = st.snap_duration(pc.clip.duration);
+        if (!snap_dur_res.has_value()) {
+            return tl::unexpected(snap_dur_res.error());
+        }
+        const auto snap_dur = *snap_dur_res;
 
         model::Clip new_clip = pc.clip;
         new_clip.id = model::generate_id<model::ClipId>(ids);
@@ -313,7 +343,12 @@ core::Result<ChangeSet> OverwriteClips::build(const model::Project& project,
     }
     const auto snapped_at = snapped_at_res.value();
 
+    std::unordered_set<model::TrackId> dest_tracks;
     for (const auto& pc : clips) {
+        if (!dest_tracks.insert(pc.track).second) {
+            return core::make_error(core::ErrorCode::InvalidArgument,
+                                    "duplicate destination track in clips list");
+        }
         auto* trk = st.find_track(pc.track);
         if (trk == nullptr) {
             return core::make_error(core::ErrorCode::NotFound, "destination track not found");
@@ -337,9 +372,17 @@ core::Result<ChangeSet> OverwriteClips::build(const model::Project& project,
 
     for (const auto& pc : clips) {
         auto* trk = st.find_track(pc.track);
-        const auto snap_dur = st.snap_duration(pc.clip.duration).value();
+        const auto snap_dur_res = st.snap_duration(pc.clip.duration);
+        if (!snap_dur_res.has_value()) {
+            return tl::unexpected(snap_dur_res.error());
+        }
+        const auto snap_dur = *snap_dur_res;
         const auto ov_start = snapped_at;
-        const auto ov_end = detail::add_time(ov_start, snap_dur).value();
+        const auto ov_end_res = detail::add_time(ov_start, snap_dur);
+        if (!ov_end_res.has_value()) {
+            return tl::unexpected(ov_end_res.error());
+        }
+        const auto ov_end = *ov_end_res;
 
         std::vector<model::Clip> updated_clips;
         for (auto& existing : trk->clips) {
@@ -357,13 +400,21 @@ core::Result<ChangeSet> OverwriteClips::build(const model::Project& project,
                 trk->touched = true;
             } else if (existing.start < ov_start && ov_end < ex_end) {
                 // Strictly contains -> split middle out
+                const auto left_dur_res = detail::diff_time(ov_start, existing.start);
+                if (!left_dur_res.has_value()) {
+                    return tl::unexpected(left_dur_res.error());
+                }
                 model::Clip left = existing;
-                left.duration = detail::diff_time(ov_start, existing.start).value();
+                left.duration = *left_dur_res;
 
+                const auto right_dur_res = detail::diff_time(ex_end, ov_end);
+                if (!right_dur_res.has_value()) {
+                    return tl::unexpected(right_dur_res.error());
+                }
                 model::Clip right = existing;
                 right.id = model::generate_id<model::ClipId>(ids);
                 right.start = ov_end;
-                right.duration = detail::diff_time(ex_end, ov_end).value();
+                right.duration = *right_dur_res;
                 right.link_id = std::nullopt;
 
                 const model::ClipKind c_kind = model::kind_of(existing.content);
@@ -372,15 +423,19 @@ core::Result<ChangeSet> OverwriteClips::build(const model::Project& project,
                 } else {
                     const auto c_offset =
                         model::ClipTime::from_ticks(ov_end.ticks() - existing.start.ticks());
-                    right.source_in = st.find_clip(existing.id).second != nullptr
-                                          ? model::clip_to_source(existing, c_offset).value()
-                                          : existing.source_in;
+                    const auto source_res = model::clip_to_source(existing, c_offset);
+                    if (!source_res.has_value()) {
+                        return tl::unexpected(source_res.error());
+                    }
+                    right.source_in = *source_res;
                 }
 
                 if (c_kind == model::ClipKind::Audio) {
                     std::get<model::AudioContent>(left.content).fade_out = core::Duration::zero();
                     std::get<model::AudioContent>(right.content).fade_in = core::Duration::zero();
                 }
+                detail::fit_audio_fades(left);
+                detail::fit_audio_fades(right);
 
                 if (existing.link_id.has_value()) {
                     st.touched_links().insert(*existing.link_id);
@@ -493,8 +548,11 @@ core::Result<ChangeSet> MoveClips::build(const model::Project& project,
     resolved.reserve(moves.size());
 
     for (const auto& m : moves) {
-        const auto snap_start = st.snap_time(m.new_start).value();
-        resolved.push_back(ResolvedMove{m.clip, snap_start, m.new_track});
+        const auto snap_start_res = st.snap_time(m.new_start);
+        if (!snap_start_res.has_value()) {
+            return tl::unexpected(snap_start_res.error());
+        }
+        resolved.push_back(ResolvedMove{m.clip, *snap_start_res, m.new_track});
     }
 
     if (!ignore_links) {
@@ -502,8 +560,15 @@ core::Result<ChangeSet> MoveClips::build(const model::Project& project,
         for (const auto& m : moves) {
             const auto [src_trk, cl] = st.find_clip(m.clip);
             if (cl != nullptr && cl->link_id.has_value()) {
-                const auto snapped_new = st.snap_time(m.new_start).value();
-                const auto delta = detail::diff_time(snapped_new, cl->start).value();
+                const auto snapped_new_res = st.snap_time(m.new_start);
+                if (!snapped_new_res.has_value()) {
+                    return tl::unexpected(snapped_new_res.error());
+                }
+                const auto delta_res = detail::diff_time(*snapped_new_res, cl->start);
+                if (!delta_res.has_value()) {
+                    return tl::unexpected(delta_res.error());
+                }
+                const auto delta = *delta_res;
 
                 for (const auto& trk : st.tracks()) {
                     for (const auto& other_cl : trk.clips) {
@@ -719,15 +784,21 @@ core::Result<ChangeSet> SplitClip::build(const model::Project& project,
                                           std::move(split_res.value().second), cl->link_id});
     }
 
-    // Link handling for right halves
+    // Link handling for right halves (in first-seen order)
+    std::vector<model::LinkId> link_order;
     std::unordered_map<model::LinkId, std::vector<std::size_t>> right_groups;
     for (std::size_t i = 0; i < results.size(); ++i) {
         if (results[i].orig_link.has_value()) {
-            right_groups[*results[i].orig_link].push_back(i);
+            const auto lid = *results[i].orig_link;
+            if (!right_groups.contains(lid)) {
+                link_order.push_back(lid);
+            }
+            right_groups[lid].push_back(i);
         }
     }
 
-    for (auto& [orig_lid, idx_vec] : right_groups) {
+    for (const auto& orig_lid : link_order) {
+        const auto& idx_vec = right_groups[orig_lid];
         if (idx_vec.size() >= 2) {
             const auto new_lid = model::generate_id<model::LinkId>(ids);
             for (std::size_t idx : idx_vec) {

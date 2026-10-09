@@ -10,9 +10,12 @@
 #include <nxtcut/model/speed.hpp>
 #include <nxtcut/model/time_coords.hpp>
 
+#include <cstdint>
 #include <optional>
 #include <string>
+#include <utility>
 #include <variant>
+#include <vector>
 
 #include <gtest/gtest.h>
 

@@ -41,6 +41,11 @@ namespace nxtcut::commands::detail {
                                                      model::TimelineTime b) noexcept;
 
 /**
+ * @brief Ensures audio content fades satisfy the duration bounds.
+ */
+void fit_audio_fades(model::Clip& clip) noexcept;
+
+/**
  * @brief Working copy of a single track's clips during command execution.
  */
 struct ScratchTrack {

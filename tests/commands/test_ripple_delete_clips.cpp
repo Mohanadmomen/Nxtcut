@@ -7,6 +7,11 @@
 #include <nxtcut/model/project.hpp>
 #include <nxtcut/model/time_coords.hpp>
 
+#include <cstdint>
+#include <optional>
+#include <string>
+#include <vector>
+
 #include <gtest/gtest.h>
 
 #include <nxtcut_test/assertions.hpp>

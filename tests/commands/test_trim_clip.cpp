@@ -5,7 +5,15 @@
 #include <nxtcut/model/clip.hpp>
 #include <nxtcut/model/ids.hpp>
 #include <nxtcut/model/project.hpp>
+#include <nxtcut/model/speed.hpp>
 #include <nxtcut/model/time_coords.hpp>
+
+#include <cstdint>
+#include <limits>
+#include <optional>
+#include <string>
+#include <utility>
+#include <vector>
 
 #include <gtest/gtest.h>
 
@@ -306,6 +314,191 @@ TEST(TrimClipTest, TrimChangingNothingReturnsEmptyChangeSet) {
     auto exec_res = editor.execute(cmd);
     ASSERT_TRUE(test::is_ok(exec_res));
     EXPECT_FALSE(editor.can_undo());
+}
+
+TEST(TrimClipTest, TrimClipExtremeHeadTrimFailsWithoutThrow) {
+    core::UuidGenerator gen(7012ULL);
+    auto ed_res = Editor::create(model::test::build_valid_project(gen), gen);
+    ASSERT_TRUE(test::is_ok(ed_res));
+    Editor& editor = *ed_res.value();
+
+    const auto main_seq_id = editor.snapshot()->main_sequence;
+    const auto v1_id = editor.snapshot()->sequences.at(main_seq_id).tracks[0].clips[0].id;
+
+    const auto extreme_edge = model::TimelineTime::from_ticks(
+        std::numeric_limits<std::int64_t>::min() + core::kTicksPerSecond);
+    TrimClip cmd{main_seq_id, v1_id, TrimEdge::Head, extreme_edge, false};
+
+    core::Result<EditReceipt> res;
+    EXPECT_NO_THROW({ res = editor.execute(cmd); });
+    EXPECT_FALSE(res.has_value());
+}
+
+TEST(TrimClipTest, AudioFadeHeadTrimSatisfiesValidate) {
+    core::UuidGenerator gen(7013ULL);
+    auto project = model::test::build_valid_project(gen);
+    const auto main_seq_id = project.main_sequence;
+    auto& a1 = project.sequences.at(main_seq_id).tracks[1].clips[0];
+    auto& a1_content = std::get<model::AudioContent>(a1.content);
+    a1_content.fade_in = duration_of_seconds(1);
+    a1_content.fade_out = duration_of_seconds(1);
+
+    auto ed_res = Editor::create(std::move(project), gen);
+    ASSERT_TRUE(test::is_ok(ed_res));
+    Editor& editor = *ed_res.value();
+
+    const auto a1_id = editor.snapshot()->sequences.at(main_seq_id).tracks[1].clips[0].id;
+
+    TrimClip cmd{main_seq_id, a1_id, TrimEdge::Head, timeline_at_seconds(4), false,
+                 RippleScope::AllUnlockedTracks, true};
+
+    auto rt_res = test::round_trip(editor, cmd);
+    ASSERT_TRUE(test::is_ok(rt_res));
+
+    const auto& a_clips = editor.snapshot()->sequences.at(main_seq_id).tracks[1].clips;
+    EXPECT_EQ(a_clips[0].start, timeline_at_seconds(4));
+    EXPECT_EQ(a_clips[0].duration, duration_of_seconds(1));
+}
+
+TEST(TrimClipTest, AudioFadeTailTrimSatisfiesValidate) {
+    core::UuidGenerator gen(7014ULL);
+    auto project = model::test::build_valid_project(gen);
+    const auto main_seq_id = project.main_sequence;
+    auto& a1 = project.sequences.at(main_seq_id).tracks[1].clips[0];
+    auto& a1_content = std::get<model::AudioContent>(a1.content);
+    a1_content.fade_in = duration_of_seconds(1);
+    a1_content.fade_out = duration_of_seconds(1);
+
+    auto ed_res = Editor::create(std::move(project), gen);
+    ASSERT_TRUE(test::is_ok(ed_res));
+    Editor& editor = *ed_res.value();
+
+    const auto a1_id = editor.snapshot()->sequences.at(main_seq_id).tracks[1].clips[0].id;
+
+    TrimClip cmd{main_seq_id, a1_id, TrimEdge::Tail, timeline_at_seconds(1), false,
+                 RippleScope::AllUnlockedTracks, true};
+
+    auto rt_res = test::round_trip(editor, cmd);
+    ASSERT_TRUE(test::is_ok(rt_res));
+
+    const auto& a_clips = editor.snapshot()->sequences.at(main_seq_id).tracks[1].clips;
+    EXPECT_EQ(a_clips[0].start, timeline_at_seconds(0));
+    EXPECT_EQ(a_clips[0].duration, duration_of_seconds(1));
+}
+
+TEST(TrimClipTest, HeadTrimV1WithIgnoreLinksNormalAndSpeed2) {
+    // Normal speed
+    {
+        core::UuidGenerator gen(7015ULL);
+        auto ed_res = Editor::create(model::test::build_valid_project(gen), gen);
+        ASSERT_TRUE(test::is_ok(ed_res));
+        Editor& editor = *ed_res.value();
+
+        const auto main_seq_id = editor.snapshot()->main_sequence;
+        const auto v1_id = editor.snapshot()->sequences.at(main_seq_id).tracks[0].clips[0].id;
+
+        TrimClip cmd{main_seq_id, v1_id, TrimEdge::Head, timeline_at_seconds(2), false,
+                     RippleScope::AllUnlockedTracks, true};
+
+        auto rt_res = test::round_trip(editor, cmd);
+        ASSERT_TRUE(test::is_ok(rt_res));
+
+        const auto& v_clips = editor.snapshot()->sequences.at(main_seq_id).tracks[0].clips;
+        EXPECT_EQ(v_clips[0].start, timeline_at_seconds(2));
+        EXPECT_EQ(v_clips[0].duration, duration_of_seconds(3));
+        EXPECT_EQ(v_clips[0].source_in.ticks(), timeline_at_seconds(2).ticks());
+    }
+    // Speed 2/1
+    {
+        core::UuidGenerator gen(7016ULL);
+        auto project = model::test::build_valid_project(gen);
+        const auto main_seq_id = project.main_sequence;
+        project.sequences.at(main_seq_id).tracks[0].clips[0].speed =
+            model::Speed::create(2, 1).value();
+
+        auto ed_res = Editor::create(std::move(project), gen);
+        ASSERT_TRUE(test::is_ok(ed_res));
+        Editor& editor = *ed_res.value();
+
+        const auto v1_id = editor.snapshot()->sequences.at(main_seq_id).tracks[0].clips[0].id;
+
+        TrimClip cmd{main_seq_id, v1_id, TrimEdge::Head, timeline_at_seconds(2), false,
+                     RippleScope::AllUnlockedTracks, true};
+
+        auto rt_res = test::round_trip(editor, cmd);
+        ASSERT_TRUE(test::is_ok(rt_res));
+
+        const auto& v_clips = editor.snapshot()->sequences.at(main_seq_id).tracks[0].clips;
+        EXPECT_EQ(v_clips[0].start, timeline_at_seconds(2));
+        EXPECT_EQ(v_clips[0].duration, duration_of_seconds(3));
+        EXPECT_EQ(v_clips[0].source_in.ticks(), timeline_at_seconds(4).ticks());
+    }
+}
+
+TEST(TrimClipTest, RippleHeadTrimV1WithDefaultLinksShiftsLaterClipsAndTrimsA1) {
+    core::UuidGenerator gen(7017ULL);
+    auto ed_res = Editor::create(model::test::build_valid_project(gen), gen);
+    ASSERT_TRUE(test::is_ok(ed_res));
+    Editor& editor = *ed_res.value();
+
+    const auto main_seq_id = editor.snapshot()->main_sequence;
+    const auto v1_id = editor.snapshot()->sequences.at(main_seq_id).tracks[0].clips[0].id;
+
+    TrimClip cmd{main_seq_id, v1_id, TrimEdge::Head, timeline_at_seconds(2), true};
+
+    auto rt_res = test::round_trip(editor, cmd);
+    ASSERT_TRUE(test::is_ok(rt_res));
+
+    const auto& v_clips = editor.snapshot()->sequences.at(main_seq_id).tracks[0].clips;
+    const auto& a_clips = editor.snapshot()->sequences.at(main_seq_id).tracks[1].clips;
+
+    // V1: start stays 0, duration 3s, source_in = 2s
+    EXPECT_EQ(v_clips[0].start, timeline_at_seconds(0));
+    EXPECT_EQ(v_clips[0].duration, duration_of_seconds(3));
+    EXPECT_EQ(v_clips[0].source_in.ticks(), timeline_at_seconds(2).ticks());
+
+    // A1: trimmed by same delta: start 0, duration 3s, source_in +2s
+    EXPECT_EQ(a_clips[0].start, timeline_at_seconds(0));
+    EXPECT_EQ(a_clips[0].duration, duration_of_seconds(3));
+    EXPECT_EQ(a_clips[0].source_in.ticks(), timeline_at_seconds(2).ticks());
+
+    // V2 becomes 3..8s
+    EXPECT_EQ(v_clips[1].start, timeline_at_seconds(3));
+    EXPECT_EQ(v_clips[1].duration, duration_of_seconds(5));
+
+    // V3 becomes 8..13s
+    EXPECT_EQ(v_clips[2].start, timeline_at_seconds(8));
+    EXPECT_EQ(v_clips[2].duration, duration_of_seconds(5));
+}
+
+TEST(TrimClipTest, RippleTailExtensionV1ShiftsV2AndV3) {
+    core::UuidGenerator gen(7018ULL);
+    auto ed_res = Editor::create(model::test::build_valid_project(gen), gen);
+    ASSERT_TRUE(test::is_ok(ed_res));
+    Editor& editor = *ed_res.value();
+
+    const auto main_seq_id = editor.snapshot()->main_sequence;
+    const auto v1_id = editor.snapshot()->sequences.at(main_seq_id).tracks[0].clips[0].id;
+
+    // Extend V1 tail from 5s to 8s with ripple
+    TrimClip cmd{main_seq_id, v1_id, TrimEdge::Tail, timeline_at_seconds(8), true};
+
+    auto rt_res = test::round_trip(editor, cmd);
+    ASSERT_TRUE(test::is_ok(rt_res));
+
+    const auto& v_clips = editor.snapshot()->sequences.at(main_seq_id).tracks[0].clips;
+
+    // V1: duration 8s
+    EXPECT_EQ(v_clips[0].start, timeline_at_seconds(0));
+    EXPECT_EQ(v_clips[0].duration, duration_of_seconds(8));
+
+    // V2: shifts +3s (from 5..10s to 8..13s)
+    EXPECT_EQ(v_clips[1].start, timeline_at_seconds(8));
+    EXPECT_EQ(v_clips[1].duration, duration_of_seconds(5));
+
+    // V3: shifts +3s (from 10..15s to 13..18s)
+    EXPECT_EQ(v_clips[2].start, timeline_at_seconds(13));
+    EXPECT_EQ(v_clips[2].duration, duration_of_seconds(5));
 }
 
 }  // namespace

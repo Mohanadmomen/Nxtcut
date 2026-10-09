@@ -10,8 +10,16 @@
 #include <nxtcut/model/ids.hpp>
 
 #include <algorithm>
+#include <cstddef>
+#include <cstdint>
+#include <limits>
+#include <optional>
+#include <string>
+#include <type_traits>
+#include <unordered_map>
 #include <unordered_set>
 #include <utility>
+#include <variant>
 #include <vector>
 
 namespace nxtcut::commands {
@@ -67,26 +75,44 @@ core::Result<ChangeSet> TrimClip::build(const model::Project& project,
             return core::make_error(core::ErrorCode::InvalidArgument,
                                     "tail trim must be after clip start");
         }
-        const auto new_dur = detail::diff_time(snapped_edge, orig_start).value();
-        if (new_dur < frame_dur) {
+        const auto new_dur_res = detail::diff_time(snapped_edge, orig_start);
+        if (!new_dur_res.has_value()) {
+            return tl::unexpected(new_dur_res.error());
+        }
+        if (*new_dur_res < frame_dur) {
             return core::make_error(core::ErrorCode::InvalidArgument,
                                     "trimmed duration less than one frame");
         }
-        delta = detail::diff_time(snapped_edge, orig_end).value();
+        const auto delta_res = detail::diff_time(snapped_edge, orig_end);
+        if (!delta_res.has_value()) {
+            return tl::unexpected(delta_res.error());
+        }
+        delta = *delta_res;
         dur_change = delta;
     } else {
         if (snapped_edge >= orig_end) {
             return core::make_error(core::ErrorCode::InvalidArgument,
                                     "head trim must be before clip end");
         }
-        const auto new_dur = detail::diff_time(orig_end, snapped_edge).value();
-        if (new_dur < frame_dur) {
+        const auto new_dur_res = detail::diff_time(orig_end, snapped_edge);
+        if (!new_dur_res.has_value()) {
+            return tl::unexpected(new_dur_res.error());
+        }
+        if (*new_dur_res < frame_dur) {
             return core::make_error(core::ErrorCode::InvalidArgument,
                                     "trimmed duration less than one frame");
         }
-        delta = detail::diff_time(snapped_edge, orig_start).value();
+        const auto delta_res = detail::diff_time(snapped_edge, orig_start);
+        if (!delta_res.has_value()) {
+            return tl::unexpected(delta_res.error());
+        }
+        delta = *delta_res;
         // dur_change = new_dur - orig_dur = -delta
-        dur_change = core::Duration::from_ticks(-delta.ticks());
+        const auto dur_change_ticks = model::detail::checked_sub(0, delta.ticks());
+        if (!dur_change_ticks.has_value()) {
+            return core::make_error(core::ErrorCode::Overflow, "time arithmetic overflow");
+        }
+        dur_change = core::Duration::from_ticks(*dur_change_ticks);
     }
 
     // Check if trim results in no change
@@ -162,12 +188,7 @@ core::Result<ChangeSet> TrimClip::build(const model::Project& project,
                     cl->source_in = model::SourceTime::from_ticks(new_s_ticks);
                 }
 
-                if (c_kind == model::ClipKind::Audio) {
-                    auto& audio = std::get<model::AudioContent>(cl->content);
-                    if (audio.fade_in > cl->duration) {
-                        audio.fade_in = cl->duration;
-                    }
-                }
+                detail::fit_audio_fades(*cl);
                 if (cl->link_id.has_value()) {
                     st.touched_links().insert(*cl->link_id);
                 }
@@ -453,7 +474,11 @@ core::Result<ChangeSet> CloseGap::build(const model::Project& project,
                                 "at position is not inside the gap");
     }
 
-    const auto gap_length = detail::diff_time(gap_end, gap_start).value();
+    const auto gap_length_res = detail::diff_time(gap_end, gap_start);
+    if (!gap_length_res.has_value()) {
+        return tl::unexpected(gap_length_res.error());
+    }
+    const auto gap_length = *gap_length_res;
     if (gap_length.ticks() <= 0) {
         return core::make_error(core::ErrorCode::InvalidArgument, "gap length is zero");
     }
@@ -642,12 +667,14 @@ core::Result<ChangeSet> JoinClips::build(const model::Project& project,
         }
 
         // Replace cl1 with joined and erase cl2
+        const model::ClipId id1 = cl1->id;
+        const model::ClipId id2 = cl2->id;
         auto it1 = std::find_if(trk1->clips.begin(), trk1->clips.end(),
-                                [&](const model::Clip& c) { return c.id == cl1->id; });
+                                [id1](const model::Clip& c) { return c.id == id1; });
         *it1 = std::move(joined);
 
         auto it2 = std::find_if(trk1->clips.begin(), trk1->clips.end(),
-                                [&](const model::Clip& c) { return c.id == cl2->id; });
+                                [id2](const model::Clip& c) { return c.id == id2; });
         trk1->clips.erase(it2);
         trk1->touched = true;
     }

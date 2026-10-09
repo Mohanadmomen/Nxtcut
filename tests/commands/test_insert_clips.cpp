@@ -7,6 +7,13 @@
 #include <nxtcut/model/project.hpp>
 #include <nxtcut/model/time_coords.hpp>
 
+#include <cstdint>
+#include <limits>
+#include <optional>
+#include <string>
+#include <utility>
+#include <vector>
+
 #include <gtest/gtest.h>
 
 #include <nxtcut_test/assertions.hpp>
@@ -366,6 +373,52 @@ TEST(InsertClipsTest, TwoClipsOf2sAnd3sShiftLaterClipsBy3s) {
     EXPECT_EQ(clips[1].duration, duration_of_seconds(2));
     EXPECT_EQ(clips[2].start, timeline_at_seconds(8));
     EXPECT_EQ(clips[3].start, timeline_at_seconds(13));
+}
+
+TEST(InsertClipsTest, InsertWithLockedPartnerInEditedTracksOnlyScopeFailsWithLocked) {
+    core::UuidGenerator gen(2011ULL);
+    auto project = model::test::build_valid_project(gen);
+    const auto main_seq_id = project.main_sequence;
+
+    // Move A1 to start at 6s (model allows unaligned links)
+    project.sequences.at(main_seq_id).tracks[1].clips[0].start = timeline_at_seconds(6);
+    // Lock audio track
+    project.sequences.at(main_seq_id).tracks[1].locked = true;
+
+    auto ed_res = Editor::create(project, gen);
+    ASSERT_TRUE(test::is_ok(ed_res));
+    Editor& editor = *ed_res.value();
+
+    const auto v_track_id = editor.snapshot()->sequences.at(main_seq_id).tracks[0].id;
+    const auto image_media_id =
+        std::get<model::ImageContent>(
+            editor.snapshot()->sequences.at(main_seq_id).tracks[0].clips[1].content)
+            .media;
+
+    model::Clip new_img;
+    new_img.duration = duration_of_seconds(2);
+    new_img.content = model::ImageContent{image_media_id};
+
+    // 1. EditedTracksOnly: straddles V1 at 2s -> partner A1 is on locked audio track -> fails with "locked"
+    InsertClips fail_cmd{main_seq_id, timeline_at_seconds(2), {{v_track_id, new_img}},
+                         RippleScope::EditedTracksOnly};
+    auto before_snap = editor.snapshot();
+    auto fail_res = editor.execute(fail_cmd);
+    ASSERT_FALSE(fail_res.has_value());
+    EXPECT_EQ(fail_res.error().code(), core::ErrorCode::InvalidArgument);
+    EXPECT_NE(fail_res.error().message().find("locked"), std::string::npos);
+    EXPECT_TRUE(model::identical(*editor.snapshot(), *before_snap));
+
+    // 2. AllUnlockedTracks: locked audio track excluded from ripple scope -> succeeds
+    InsertClips succ_cmd{main_seq_id, timeline_at_seconds(2), {{v_track_id, new_img}},
+                         RippleScope::AllUnlockedTracks};
+    auto rt_res = test::round_trip(editor, succ_cmd);
+    ASSERT_TRUE(test::is_ok(rt_res));
+
+    const auto& a_clips = editor.snapshot()->sequences.at(main_seq_id).tracks[1].clips;
+    ASSERT_EQ(a_clips.size(), 1U);
+    EXPECT_EQ(a_clips[0].start, timeline_at_seconds(6));
+    EXPECT_EQ(a_clips[0].duration, duration_of_seconds(5));
 }
 
 }  // namespace

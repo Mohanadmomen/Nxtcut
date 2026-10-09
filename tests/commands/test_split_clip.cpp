@@ -8,6 +8,14 @@
 #include <nxtcut/model/speed.hpp>
 #include <nxtcut/model/time_coords.hpp>
 
+#include <cstdint>
+#include <limits>
+#include <optional>
+#include <string>
+#include <utility>
+#include <variant>
+#include <vector>
+
 #include <gtest/gtest.h>
 
 #include <nxtcut_test/assertions.hpp>
@@ -255,6 +263,34 @@ TEST(SplitClipTest, PartnerNotContainingSplitTimeIsLeftAlone) {
     ASSERT_EQ(a_clips.size(), 1U);
     EXPECT_EQ(a_clips[0].start, timeline_at_seconds(0));
     EXPECT_EQ(a_clips[0].duration, duration_of_seconds(1));
+}
+
+TEST(SplitClipTest, AudioFadeSplitSatisfiesValidate) {
+    core::UuidGenerator gen(6011ULL);
+    auto project = model::test::build_valid_project(gen);
+    const auto main_seq_id = project.main_sequence;
+    auto& a1 = project.sequences.at(main_seq_id).tracks[1].clips[0];
+    auto& a1_content = std::get<model::AudioContent>(a1.content);
+    a1_content.fade_in = duration_of_seconds(1);
+    a1_content.fade_out = duration_of_seconds(1);
+
+    auto ed_res = Editor::create(std::move(project), gen);
+    ASSERT_TRUE(test::is_ok(ed_res));
+    Editor& editor = *ed_res.value();
+
+    const auto a1_id = editor.snapshot()->sequences.at(main_seq_id).tracks[1].clips[0].id;
+
+    SplitClip cmd{main_seq_id, a1_id, timeline_at_seconds(4), true};
+
+    auto rt_res = test::round_trip(editor, cmd);
+    ASSERT_TRUE(test::is_ok(rt_res));
+
+    const auto& a_clips = editor.snapshot()->sequences.at(main_seq_id).tracks[1].clips;
+    ASSERT_EQ(a_clips.size(), 2U);
+    EXPECT_EQ(a_clips[0].start, timeline_at_seconds(0));
+    EXPECT_EQ(a_clips[0].duration, duration_of_seconds(4));
+    EXPECT_EQ(a_clips[1].start, timeline_at_seconds(4));
+    EXPECT_EQ(a_clips[1].duration, duration_of_seconds(1));
 }
 
 }  // namespace

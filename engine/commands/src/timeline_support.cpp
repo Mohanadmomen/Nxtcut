@@ -8,12 +8,33 @@
 #include <nxtcut/model/equality.hpp>
 
 #include <algorithm>
+#include <cstddef>
+#include <cstdint>
 #include <limits>
+#include <optional>
+#include <string>
 #include <tuple>
+#include <type_traits>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
+#include <variant>
+#include <vector>
 
 namespace nxtcut::commands::detail {
+
+void fit_audio_fades(model::Clip& clip) noexcept {
+    if (model::kind_of(clip.content) != model::ClipKind::Audio) {
+        return;
+    }
+    auto& audio = std::get<model::AudioContent>(clip.content);
+    if (audio.fade_in > clip.duration) {
+        audio.fade_in = clip.duration;
+    }
+    const auto max_fade_out = core::Duration::from_ticks(clip.duration.ticks() - audio.fade_in.ticks()); if (audio.fade_out > max_f
+        audio.fade_out = max_fade_out;
+    }
+}
 
 core::Result<model::TimelineTime> add_time(model::TimelineTime t, core::Duration d) noexcept {
     const auto sum = model::detail::checked_add(t.ticks(), d.ticks());
@@ -306,16 +327,12 @@ core::Result<std::pair<model::Clip, model::Clip>> ScratchTimeline::split_clip(
     if (c_kind == model::ClipKind::Audio) {
         auto& left_audio = std::get<model::AudioContent>(left.content);
         left_audio.fade_out = core::Duration::zero();
-        if (left_audio.fade_in > left.duration) {
-            left_audio.fade_in = left.duration;
-        }
 
         auto& right_audio = std::get<model::AudioContent>(right.content);
         right_audio.fade_in = core::Duration::zero();
-        if (right_audio.fade_out > right.duration) {
-            right_audio.fade_out = right.duration;
-        }
     }
+    fit_audio_fades(left);
+    fit_audio_fades(right);
 
     if (clip.link_id.has_value()) {
         touched_links_.insert(*clip.link_id);
@@ -335,7 +352,7 @@ core::Status ScratchTimeline::trim_head(model::Clip& clip, model::TimelineTime n
                                 "head trim must be before clip end");
     }
 
-    const auto old_start = clip.start;
+    const auto old_start = clip.start; const model::Clip original_clip = clip;
     const auto new_dur_res = diff_time(*end_res, new_start);
     if (!new_dur_res.has_value()) {
         return tl::unexpected(new_dur_res.error());
@@ -350,7 +367,7 @@ core::Status ScratchTimeline::trim_head(model::Clip& clip, model::TimelineTime n
     } else if (new_start > old_start) {
         const auto delta_ticks = new_start.ticks() - old_start.ticks();
         const auto c_offset = model::ClipTime::from_ticks(delta_ticks);
-        const auto source_res = model::clip_to_source(clip, c_offset);
+        const auto source_res = model::clip_to_source(original_clip, c_offset);
         if (!source_res.has_value()) {
             return tl::unexpected(source_res.error());
         }
@@ -370,12 +387,7 @@ core::Status ScratchTimeline::trim_head(model::Clip& clip, model::TimelineTime n
         clip.source_in = model::SourceTime::from_ticks(new_source_ticks);
     }
 
-    if (c_kind == model::ClipKind::Audio) {
-        auto& audio = std::get<model::AudioContent>(clip.content);
-        if (audio.fade_in > clip.duration) {
-            audio.fade_in = clip.duration;
-        }
-    }
+    fit_audio_fades(clip);
 
     if (clip.link_id.has_value()) {
         touched_links_.insert(*clip.link_id);
@@ -397,12 +409,7 @@ core::Status ScratchTimeline::trim_tail(model::Clip& clip, model::TimelineTime n
 
     clip.duration = *new_dur_res;
 
-    if (model::kind_of(clip.content) == model::ClipKind::Audio) {
-        auto& audio = std::get<model::AudioContent>(clip.content);
-        if (audio.fade_out > clip.duration) {
-            audio.fade_out = clip.duration;
-        }
-    }
+    fit_audio_fades(clip);
 
     if (clip.link_id.has_value()) {
         touched_links_.insert(*clip.link_id);
