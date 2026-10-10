@@ -62,6 +62,14 @@ core::Result<core::Duration> diff_time(model::TimelineTime a, model::TimelineTim
     return core::Duration::from_ticks(*diff);
 }
 
+model::TimelineTime end_of(const model::Clip& clip) noexcept {
+    const auto end = model::clip_end(clip);
+    if (end.has_value()) {
+        return *end;
+    }
+    return model::TimelineTime::from_ticks(std::numeric_limits<std::int64_t>::max());
+}
+
 core::Result<ScratchTimeline> ScratchTimeline::create(const model::Project& project,
                                                       model::SequenceId seq_id,
                                                       core::UuidGenerator& ids) {
