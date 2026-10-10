@@ -17,8 +17,8 @@ Priority order for every decision: (1) clean, modular, tested code; (2) correctn
 | 2 | Data model | Project, Sequence, Track, Clip, media references, properties, IDs, validation, compound-clip graph | 1 | done |
 | 3A | Commands infrastructure | ChangeSet, apply/inverse, History, Editor, transactions, listeners, 15 simple commands, `model::identical` | 2 | done |
 | 3B | Timeline edits | add, insert, overwrite, move, delete, split, trim, ripple delete, close gap, join, link, unlink | 3A | done |
-| 3C-1 | Advanced edits (1) | roll, slip, slide; unify source-offset rounding between ripple and non-ripple trims | 3B | NEXT |
-| 3C-2 | Advanced edits (2) | rate-stretch (speed limited to 1/100x..100x), track push/pull (`ShiftTrackClips`) | 3C-1 | todo |
+| 3C-1 | Advanced edits (1) | roll, slip, slide; unify source-offset rounding between ripple and non-ripple trims | 3B | done |
+| 3C-2 | Advanced edits (2) | rate-stretch (speed limited to 1/100x..100x), track push/pull (`ShiftTrackClips`) | 3C-1 | NEXT |
 | 4 | Keyframes | curves, bezier, easing presets, spring, interpolation, animated properties, motion modifiers, keyframe commands. Must first settle the `model -> keyframes` dependency | 1B, 2, 3A | todo |
 | 5 | Storage | JSON project files, schema version and migrations, workspace layout, autosave, trash, ZIP bundles, orphan cleanup | 2, 4 | todo |
 | 6 | Media layer | FFmpeg probe, decode, frame-accurate seek, hardware-decode hooks, thumbnails, waveforms, proxies, relink, ProRes. Consider a tiny FFmpeg spike on all CI platforms around Step 5 | 1B | todo |

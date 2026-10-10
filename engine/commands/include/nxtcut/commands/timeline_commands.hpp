@@ -266,4 +266,46 @@ struct SlideClip {
                                                 core::UuidGenerator& ids) const;
 };
 
+// ============================================================================
+// Part 4: Rate Stretch and Track Shifting
+// ============================================================================
+
+/**
+ * @brief Changes a clip's playback speed by stretching an edge on the timeline while preserving
+ * its source range.
+ *
+ * @note Thread safety: Command is a plain value; build() is const and reentrant.
+ */
+struct RateStretch {
+    model::SequenceId sequence;
+    model::ClipId clip;
+    TrimEdge edge{TrimEdge::Tail};
+    model::TimelineTime new_edge;
+    bool ripple{false};
+    RippleScope scope{RippleScope::AllUnlockedTracks};
+    bool ignore_links{false};
+
+    [[nodiscard]] std::string label() const { return "Rate Stretch"; }
+    [[nodiscard]] core::Result<ChangeSet> build(const model::Project& project,
+                                                core::UuidGenerator& ids) const;
+};
+
+/**
+ * @brief Shifts all clips on a track starting at or after a specified timeline position by a delta.
+ *
+ * @note Thread safety: Command is a plain value; build() is const and reentrant.
+ */
+struct ShiftTrackClips {
+    model::SequenceId sequence;
+    model::TrackId track;
+    model::TimelineTime at;
+    core::Duration delta{
+        core::Duration::zero()};  // signed: positive pushes later, negative pulls earlier
+    bool ignore_links{false};
+
+    [[nodiscard]] std::string label() const { return "Shift Track Clips"; }
+    [[nodiscard]] core::Result<ChangeSet> build(const model::Project& project,
+                                                core::UuidGenerator& ids) const;
+};
+
 }  // namespace nxtcut::commands

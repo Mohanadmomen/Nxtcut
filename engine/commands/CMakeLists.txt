@@ -13,6 +13,7 @@ nxtcut_add_module(
         src/timeline_commands_part1.cpp
         src/timeline_commands_part2.cpp
         src/timeline_commands_part3.cpp
+        src/timeline_commands_part4.cpp
         src/timeline_support.cpp
         src/track_commands.cpp
     HEADERS

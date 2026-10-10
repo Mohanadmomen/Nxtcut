@@ -6,6 +6,7 @@
 #include <nxtcut/model/checked_arithmetic.hpp>
 #include <nxtcut/model/compound_graph.hpp>
 #include <nxtcut/model/equality.hpp>
+#include <nxtcut/model/speed.hpp>
 
 #include <algorithm>
 #include <cstddef>
@@ -84,6 +85,68 @@ core::Status advance_source_in(model::Clip& clip, core::Duration timeline_delta)
     }
 
     clip.source_in = model::SourceTime::from_ticks(*new_source_ticks);
+    return core::Status{};
+}
+
+core::Status stretch_to_duration(model::Clip& clip, core::Duration new_duration) noexcept {
+    const model::ClipKind k = model::kind_of(clip.content);
+    if (k == model::ClipKind::Image || k == model::ClipKind::Text) {
+        return core::make_error(core::ErrorCode::InvalidArgument,
+                                "cannot rate stretch image or text clips");
+    }
+
+    if (new_duration.ticks() <= 0) {
+        return core::make_error(core::ErrorCode::InvalidArgument, "clip duration must be positive");
+    }
+
+    const auto span_res = model::source_span(clip);
+    if (!span_res.has_value()) {
+        return tl::unexpected(span_res.error());
+    }
+
+    const std::int64_t s_ticks = span_res.value().ticks();
+    const std::int64_t d_ticks = new_duration.ticks();
+
+    const auto speed_res = model::Speed::create(s_ticks, d_ticks);
+    if (!speed_res.has_value()) {
+        return tl::unexpected(speed_res.error());
+    }
+    const auto new_speed = speed_res.value();
+
+    const std::int64_t n = new_speed.numerator();
+    const std::int64_t d = new_speed.denominator();
+
+    // Check speed limits: 1/100 <= n/d <= 100
+    // Check n * 100 >= d (minimum speed limit 1/100)
+    const auto n_times_100_res = core::mul_div(n, kMaxSpeedFactor, 1, core::RoundingMode::Floor);
+    if (n_times_100_res.has_value()) {
+        if (n_times_100_res.value() < d) {
+            return core::make_error(core::ErrorCode::InvalidArgument,
+                                    "clip speed below minimum limit (1/100)");
+        }
+    } else if (n_times_100_res.error().code() == core::ErrorCode::Overflow) {
+        // Overflow means n * 100 is huge, inequality is satisfied.
+    } else {
+        return tl::unexpected(n_times_100_res.error());
+    }
+
+    // Check n <= 100 * d (maximum speed limit 100/1)
+    const auto d_times_100_res = core::mul_div(d, kMaxSpeedFactor, 1, core::RoundingMode::Floor);
+    if (d_times_100_res.has_value()) {
+        if (n > d_times_100_res.value()) {
+            return core::make_error(core::ErrorCode::InvalidArgument,
+                                    "clip speed exceeds maximum limit (100x)");
+        }
+    } else if (d_times_100_res.error().code() == core::ErrorCode::Overflow) {
+        // Overflow means 100 * d is huge, inequality is satisfied.
+    } else {
+        return tl::unexpected(d_times_100_res.error());
+    }
+
+    clip.speed = new_speed;
+    clip.duration = new_duration;
+    fit_audio_fades(clip);
+
     return core::Status{};
 }
 
