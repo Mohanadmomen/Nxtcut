@@ -4,7 +4,7 @@ Single place to see what NxtCut is, what is done, what is left, and how to work 
 Read this first. The full plan (every step, UI steps, milestones) is in `docs/ROADMAP.md`.
 Update this file after every merged step (the "Status" and "Next" sections).
 
-Last updated: 2026-10-10 (Step 3C-1 merged, 474 tests, CI green).
+Last updated: 2026-10-10 (Step 3C-2 merged, 502 tests, CI green).
 
 ## What NxtCut is
 A professional multi-track desktop video editor: C++20, Qt 6 (Widgets) for the UI, MIT licensed.
@@ -25,8 +25,10 @@ drift, no data loss); (3) performance; (4) feature count.
 | 3A | `commands`: ChangeSet, History, Editor, transactions, 15 simple commands | done |
 | 3B | Timeline edits: add, insert, overwrite, move, delete, split, trim, ripple delete, close gap, join, link, unlink | done (merged) |
 | 3C-1 | Advanced edits (1): roll, slip, slide; unify source-offset rounding of ripple/non-ripple trims | done (merged) |
-| 3C-2 | Advanced edits (2): rate-stretch (speed 1/100x..100x), track push/pull (`ShiftTrackClips`) | NEXT |
-| 4 | Keyframes and animated properties | todo |
+| 3C-2 | Advanced edits (2): rate-stretch (speed 1/100x..100x), track push/pull (`ShiftTrackClips`) | done (merged) |
+| 4A | `keyframes` module: easing, cubic bezier, keyframe track, fast evaluation (core-only, no model changes) | NEXT |
+| 4B | Wire keyframes into `Property<T>`; `model` may depend on `keyframes`; validation, `identical` | todo |
+| 4C | Keyframe commands (add, move, delete, set interpolation) and keyframe handling on trims; then spring and motion modifiers | todo |
 | 5 | Storage: JSON project files, schema versions, autosave | todo |
 | 6 | Media layer: FFmpeg probe/decode/seek, thumbnails, waveforms | todo |
 | 7 | Playback: clock, decode-ahead, frame cache, scrubbing | todo |
@@ -53,17 +55,19 @@ After M1: the Qt UI (app steps A0 to A14).
 - Details: `docs/ARCHITECTURE.md`, `docs/MODEL.md`, `docs/COMMANDS.md`, `docs/CODING_STANDARDS.md`.
 
 ## Decisions already made (do not reopen without a reason)
+Speed matters: hot paths (property evaluation, time conversion, rendering inputs) are allocation-free, `noexcept`
+where possible, and have documented complexity; correctness first, then measure before micro-optimizing.
 C++20 + Qt Widgets; CMake presets + vcpkg; GoogleTest; FFmpeg linked dynamically (LGPL, no GPL parts);
 CPU renderer is the reference, GPU later; build order: model, commands, keyframes, storage, then media;
 timeline edits follow mainstream editors (sync-lock ripple, frame snapping, linked clips edit together);
 no Adobe plugin loading (proprietary), OpenFX and VST3/CLAP instead.
 
 ## Next
-Write the Step 3C-2 prompt (`RateStretch`, `ShiftTrackClips`) and implement it on branch
-`step-3c2-rate-stretch-shift`. Defaults agreed: `RateStretch` mirrors `TrimClip` (edge, new_edge, ripple, scope,
-ignore_links); the source range stays fixed and the new speed is the exact rational source_span / new_duration,
-limited to 1/100x..100x; linked partners stretch together. `ShiftTrackClips` is {sequence, track, at, delta,
-ignore_links}: clips starting at or after `at` shift by a signed delta, no clamping, linked partners move too.
+Step 4A on branch `step-4-keyframes`: new `keyframes` module (depends on `core` only): easing presets, cubic
+bezier (CSS style), `Interpolation`, `Keyframe<T>`, `KeyframeTrack<T>` with allocation-free evaluation
+(O(log n) lookup, O(1) amortized with a playback cursor). Animatable types: `double`, `core::Color`,
+`core::Point<double>`. Spring and motion modifiers come after 4C. Dependency decision: `model` will be allowed to
+depend on `keyframes` (done in 4B; update `docs/ARCHITECTURE.md` table and `scripts/check_architecture.py` then).
 
 ## Known technical debt
 - `diff_to_changes` and clip lookups are linear (fine now; benchmark at Steps 6-7).

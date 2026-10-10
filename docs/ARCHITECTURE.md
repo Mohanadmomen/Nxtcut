@@ -113,6 +113,14 @@ Provides the transactional mutation engine and history management for document m
 
 ### 4. `keyframes`
 Manages parameter animation over time, implementing keyframe storage, interpolation algorithms (linear, bezier, easing curves), parameter evaluation at arbitrary timestamps, and spatial/temporal curve math.
+- **Purpose**: Pure curve mathematics, interpolation value types, and keyframe tracks with zero-allocation, noexcept hot-path evaluation.
+- **Allowed Dependencies**: `core` (Note: in Step 4B, `model` will be allowed to depend on `keyframes` to wire `KeyframeTrack<T>` into `Property<T>`).
+- **Key Types & Components**:
+  - **Easing Presets (`easing.hpp`)**: `EasingKind` with 19 variants (Linear and In/Out/InOut for Sine, Quad, Cubic, Quart, Expo, Circ), `ease(kind, t)`, `to_string`, and `easing_from_string`.
+  - **Interpolation Specification (`interpolation.hpp`)**: `Interpolation` trivially copyable value type supporting Hold, Linear, Easing, and CSS-style cubic-bezier (`map_progress()`).
+  - **Animatable Concept & Traits (`animatable.hpp`)**: `AnimatableTraits<T>` and `Animatable<T>` concept with specializations for `double`, `core::Color`, and `core::Point<double>`.
+  - **Keyframe Representation (`keyframe.hpp`)**: `Keyframe<T>` holding relative time, value, and outgoing segment interpolation.
+  - **Fast Evaluation Track (`keyframe_track.hpp`)**: `KeyframeTrack<T>` managing sorted keyframes with strict tick bounds `[-2^62, +2^62]`, $O(\log n)$ random access via `value_at(t)`, and $O(1)$ amortized sequential playback via `value_at(t, Cursor&)`.
 
 ### 5. `storage`
 Handles project persistence, serialization, and deserialization of the timeline model and project assets to disk formats (such as JSON or binary archives), including asset relocation, file hashing, and project bundling.
