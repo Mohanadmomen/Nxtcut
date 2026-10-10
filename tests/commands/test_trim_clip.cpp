@@ -1,5 +1,6 @@
 #include <nxtcut/commands/editor.hpp>
 #include <nxtcut/commands/timeline_commands.hpp>
+#include <nxtcut/core/frame_rate.hpp>
 #include <nxtcut/core/time.hpp>
 #include <nxtcut/core/uuid.hpp>
 #include <nxtcut/model/clip.hpp>
@@ -520,6 +521,159 @@ TEST(TrimClipTest, RippleTailExtensionV1ShiftsV2AndV3) {
     // V3: shifts +3s (from 10..15s to 13..18s)
     EXPECT_EQ(v_clips[2].start, timeline_at_seconds(13));
     EXPECT_EQ(v_clips[2].duration, duration_of_seconds(5));
+}
+
+struct UnificationFixture {
+    model::Project project;
+    model::SequenceId seq_id;
+    model::ClipId clip_x_id;
+};
+
+UnificationFixture create_unification_fixture(core::UuidGenerator& gen) {
+    constexpr std::int64_t kF = 29'400'000;
+    auto project = model::test::build_valid_project(gen);
+    const auto seq_id = project.main_sequence;
+    auto& seq = project.sequences.at(seq_id);
+    seq.frame_rate = core::frame_rates::k24;
+
+    const auto video_media_id = std::get<model::VideoContent>(seq.tracks[0].clips[0].content).media;
+    project.media[video_media_id].duration = core::Duration::from_ticks(1000 * kF);
+    project.media[video_media_id].video->frame_rate = core::frame_rates::k24;
+
+    const auto clip_x_id = model::generate_id<model::ClipId>(gen);
+    model::Clip x;
+    x.id = clip_x_id;
+    x.name = "ClipX";
+    x.start = model::TimelineTime::from_ticks(100 * kF);
+    x.duration = core::Duration::from_ticks(100 * kF);
+    x.source_in = model::SourceTime::from_ticks(500 * kF);
+    x.speed = model::Speed::create(1, 11).value();
+    x.content = model::VideoContent{video_media_id};
+
+    seq.tracks[0].clips.clear();
+    seq.tracks[0].clips.push_back(x);
+    seq.tracks[1].clips.clear();
+
+    return UnificationFixture{std::move(project), seq_id, clip_x_id};
+}
+
+TEST(TrimClipTest, U1_HeadTrimTo101FAdvancesSourceInExactTicks) {
+    constexpr std::int64_t kF = 29'400'000;
+    const auto expected_src = 500 * kF + 2'672'727;
+
+    // Non-ripple
+    {
+        core::UuidGenerator gen(7101ULL);
+        auto fix = create_unification_fixture(gen);
+        auto ed_res = Editor::create(std::move(fix.project), gen);
+        ASSERT_TRUE(test::is_ok(ed_res));
+        Editor& editor = *ed_res.value();
+
+        TrimClip cmd{fix.seq_id, fix.clip_x_id, TrimEdge::Head,
+                     model::TimelineTime::from_ticks(101 * kF), false};
+        ASSERT_TRUE(test::is_ok(test::round_trip(editor, cmd)));
+
+        const auto& x = editor.snapshot()->sequences.at(fix.seq_id).tracks[0].clips[0];
+        EXPECT_EQ(x.source_in.ticks(), expected_src);
+    }
+
+    // Ripple
+    {
+        core::UuidGenerator gen(7102ULL);
+        auto fix = create_unification_fixture(gen);
+        auto ed_res = Editor::create(std::move(fix.project), gen);
+        ASSERT_TRUE(test::is_ok(ed_res));
+        Editor& editor = *ed_res.value();
+
+        TrimClip cmd{fix.seq_id, fix.clip_x_id, TrimEdge::Head,
+                     model::TimelineTime::from_ticks(101 * kF), true};
+        ASSERT_TRUE(test::is_ok(test::round_trip(editor, cmd)));
+
+        const auto& x = editor.snapshot()->sequences.at(fix.seq_id).tracks[0].clips[0];
+        EXPECT_EQ(x.source_in.ticks(), expected_src);
+    }
+}
+
+TEST(TrimClipTest, U2_HeadTrimTo99FShrinksSourceInExactTicks) {
+    constexpr std::int64_t kF = 29'400'000;
+    const auto expected_src = 500 * kF - 2'672'727;
+
+    // Non-ripple
+    {
+        core::UuidGenerator gen(7103ULL);
+        auto fix = create_unification_fixture(gen);
+        auto ed_res = Editor::create(std::move(fix.project), gen);
+        ASSERT_TRUE(test::is_ok(ed_res));
+        Editor& editor = *ed_res.value();
+
+        TrimClip cmd{fix.seq_id, fix.clip_x_id, TrimEdge::Head,
+                     model::TimelineTime::from_ticks(99 * kF), false};
+        ASSERT_TRUE(test::is_ok(test::round_trip(editor, cmd)));
+
+        const auto& x = editor.snapshot()->sequences.at(fix.seq_id).tracks[0].clips[0];
+        EXPECT_EQ(x.source_in.ticks(), expected_src);
+    }
+
+    // Ripple
+    {
+        core::UuidGenerator gen(7104ULL);
+        auto fix = create_unification_fixture(gen);
+        auto ed_res = Editor::create(std::move(fix.project), gen);
+        ASSERT_TRUE(test::is_ok(ed_res));
+        Editor& editor = *ed_res.value();
+
+        TrimClip cmd{fix.seq_id, fix.clip_x_id, TrimEdge::Head,
+                     model::TimelineTime::from_ticks(99 * kF), true};
+        ASSERT_TRUE(test::is_ok(test::round_trip(editor, cmd)));
+
+        const auto& x = editor.snapshot()->sequences.at(fix.seq_id).tracks[0].clips[0];
+        EXPECT_EQ(x.source_in.ticks(), expected_src);
+    }
+}
+
+TEST(TrimClipTest, U3_HeadTrimPlusOneThenMinusOneRestoresSourceExactly) {
+    constexpr std::int64_t kF = 29'400'000;
+    const auto original_src = 500 * kF;
+
+    // Non-ripple
+    {
+        core::UuidGenerator gen(7105ULL);
+        auto fix = create_unification_fixture(gen);
+        auto ed_res = Editor::create(std::move(fix.project), gen);
+        ASSERT_TRUE(test::is_ok(ed_res));
+        Editor& editor = *ed_res.value();
+
+        TrimClip cmd_plus{fix.seq_id, fix.clip_x_id, TrimEdge::Head,
+                          model::TimelineTime::from_ticks(101 * kF), false};
+        ASSERT_TRUE(test::is_ok(test::round_trip(editor, cmd_plus)));
+
+        TrimClip cmd_minus{fix.seq_id, fix.clip_x_id, TrimEdge::Head,
+                           model::TimelineTime::from_ticks(100 * kF), false};
+        ASSERT_TRUE(test::is_ok(test::round_trip(editor, cmd_minus)));
+
+        const auto& x = editor.snapshot()->sequences.at(fix.seq_id).tracks[0].clips[0];
+        EXPECT_EQ(x.source_in.ticks(), original_src);
+    }
+
+    // Ripple
+    {
+        core::UuidGenerator gen(7106ULL);
+        auto fix = create_unification_fixture(gen);
+        auto ed_res = Editor::create(std::move(fix.project), gen);
+        ASSERT_TRUE(test::is_ok(ed_res));
+        Editor& editor = *ed_res.value();
+
+        TrimClip cmd_plus{fix.seq_id, fix.clip_x_id, TrimEdge::Head,
+                          model::TimelineTime::from_ticks(101 * kF), true};
+        ASSERT_TRUE(test::is_ok(test::round_trip(editor, cmd_plus)));
+
+        TrimClip cmd_minus{fix.seq_id, fix.clip_x_id, TrimEdge::Head,
+                           model::TimelineTime::from_ticks(99 * kF), true};
+        ASSERT_TRUE(test::is_ok(test::round_trip(editor, cmd_minus)));
+
+        const auto& x = editor.snapshot()->sequences.at(fix.seq_id).tracks[0].clips[0];
+        EXPECT_EQ(x.source_in.ticks(), original_src);
+    }
 }
 
 }  // namespace

@@ -169,22 +169,9 @@ core::Result<ChangeSet> TrimClip::build(const model::Project& project,
                 }
                 cl->duration = core::Duration::from_ticks(new_p_dur.value().ticks());
 
-                const model::ClipKind c_kind = model::kind_of(cl->content);
-                if (c_kind == model::ClipKind::Image || c_kind == model::ClipKind::Text) {
-                    cl->source_in = model::SourceTime::zero();
-                } else {
-                    const auto scaled_res =
-                        core::mul_div(delta.ticks(), cl->speed.numerator(), cl->speed.denominator(),
-                                      core::RoundingMode::Floor);
-                    if (!scaled_res.has_value()) {
-                        return tl::unexpected(scaled_res.error());
-                    }
-                    const auto new_s_ticks = cl->source_in.ticks() + *scaled_res;
-                    if (new_s_ticks < 0) {
-                        return core::make_error(core::ErrorCode::InvalidArgument,
-                                                "source range extends before zero");
-                    }
-                    cl->source_in = model::SourceTime::from_ticks(new_s_ticks);
+                const auto adv_status = detail::advance_source_in(*cl, delta);
+                if (!adv_status.has_value()) {
+                    return tl::unexpected(adv_status.error());
                 }
 
                 detail::fit_audio_fades(*cl);

@@ -19,6 +19,9 @@ nxtcut_add_module_test(
         test_move_clips.cpp
         test_overwrite_clips.cpp
         test_ripple_delete_clips.cpp
+        test_roll_edit.cpp
+        test_slide_clip.cpp
+        test_slip_clip.cpp
         test_split_clip.cpp
         test_timeline_edits_editor.cpp
         test_trim_clip.cpp

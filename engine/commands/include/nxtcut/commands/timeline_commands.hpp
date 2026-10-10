@@ -209,4 +209,61 @@ struct UnlinkClips {
                                                 core::UuidGenerator& ids) const;
 };
 
+// ============================================================================
+// Part 3: Advanced Trimming
+// ============================================================================
+
+/**
+ * @brief Rolls the edit point between two adjacent clips, moving the left clip's tail
+ * and right clip's head simultaneously without altering overall timeline duration.
+ *
+ * @note Thread safety: Command is a plain value; build() is const and reentrant.
+ */
+struct RollEdit {
+    model::SequenceId sequence;
+    model::ClipId left;
+    model::ClipId right;
+    model::TimelineTime new_edit;
+    bool ignore_links{false};
+
+    [[nodiscard]] std::string label() const { return "Roll Edit"; }
+    [[nodiscard]] core::Result<ChangeSet> build(const model::Project& project,
+                                                core::UuidGenerator& ids) const;
+};
+
+/**
+ * @brief Slips the source content of a clip earlier or later while keeping its timeline
+ * position and duration unchanged.
+ *
+ * @note Thread safety: Command is a plain value; build() is const and reentrant.
+ */
+struct SlipClip {
+    model::SequenceId sequence;
+    model::ClipId clip;
+    core::Duration delta{
+        core::Duration::zero()};  // signed, timeline units; positive = later source content
+    bool ignore_links{false};
+
+    [[nodiscard]] std::string label() const { return "Slip Clip"; }
+    [[nodiscard]] core::Result<ChangeSet> build(const model::Project& project,
+                                                core::UuidGenerator& ids) const;
+};
+
+/**
+ * @brief Slides a clip earlier or later on the timeline, rolling the adjacent neighbor clips
+ * without altering the total span of the trio.
+ *
+ * @note Thread safety: Command is a plain value; build() is const and reentrant.
+ */
+struct SlideClip {
+    model::SequenceId sequence;
+    model::ClipId clip;
+    model::TimelineTime new_start;
+    bool ignore_links{false};
+
+    [[nodiscard]] std::string label() const { return "Slide Clip"; }
+    [[nodiscard]] core::Result<ChangeSet> build(const model::Project& project,
+                                                core::UuidGenerator& ids) const;
+};
+
 }  // namespace nxtcut::commands

@@ -38,6 +38,55 @@ void fit_audio_fades(model::Clip& clip) noexcept {
     }
 }
 
+core::Result<std::int64_t> source_offset_for_delta(const model::Speed& speed,
+                                                   core::Duration delta) noexcept {
+    const std::int64_t delta_ticks = delta.ticks();
+    if (delta_ticks == 0) {
+        return 0;
+    }
+    if (delta_ticks == std::numeric_limits<std::int64_t>::min()) {
+        return core::make_error(core::ErrorCode::Overflow, "delta overflow");
+    }
+
+    const std::int64_t abs_delta = (delta_ticks < 0) ? -delta_ticks : delta_ticks;
+    const auto scaled_res =
+        core::mul_div(abs_delta, speed.numerator(), speed.denominator(), core::RoundingMode::Floor);
+    if (!scaled_res.has_value()) {
+        return tl::unexpected(scaled_res.error());
+    }
+
+    const std::int64_t scaled = *scaled_res;
+    if (delta_ticks < 0) {
+        return -scaled;
+    }
+    return scaled;
+}
+
+core::Status advance_source_in(model::Clip& clip, core::Duration timeline_delta) noexcept {
+    const model::ClipKind k = model::kind_of(clip.content);
+    if (k == model::ClipKind::Image || k == model::ClipKind::Text) {
+        clip.source_in = model::SourceTime::zero();
+        return core::Status{};
+    }
+
+    const auto offset_res = source_offset_for_delta(clip.speed, timeline_delta);
+    if (!offset_res.has_value()) {
+        return tl::unexpected(offset_res.error());
+    }
+
+    const auto new_source_ticks = model::detail::checked_add(clip.source_in.ticks(), *offset_res);
+    if (!new_source_ticks.has_value()) {
+        return core::make_error(core::ErrorCode::Overflow, "source range arithmetic overflow");
+    }
+
+    if (*new_source_ticks < 0) {
+        return core::make_error(core::ErrorCode::InvalidArgument, "source extends before zero");
+    }
+
+    clip.source_in = model::SourceTime::from_ticks(*new_source_ticks);
+    return core::Status{};
+}
+
 core::Result<model::TimelineTime> add_time(model::TimelineTime t, core::Duration d) noexcept {
     const auto sum = model::detail::checked_add(t.ticks(), d.ticks());
     if (!sum.has_value()) {
@@ -164,6 +213,15 @@ core::Result<core::Duration> ScratchTimeline::snap_duration(core::Duration d) co
                                 "duration snaps to less than one frame");
     }
     return snapped;
+}
+
+core::Result<core::Duration> ScratchTimeline::snap_delta(core::Duration d) const noexcept {
+    const auto res = core::snap_to_frame(core::TimePoint::from_ticks(d.ticks()),
+                                         sequence_->frame_rate, core::RoundingMode::Nearest);
+    if (!res.has_value()) {
+        return tl::unexpected(res.error());
+    }
+    return core::Duration::from_ticks(res.value().ticks());
 }
 
 bool ScratchTimeline::is_clip_compatible(model::TrackKind track_kind,
@@ -363,39 +421,22 @@ core::Status ScratchTimeline::trim_head(model::Clip& clip, model::TimelineTime n
     }
 
     const auto old_start = clip.start;
-    const model::Clip original_clip = clip;
     const auto new_dur_res = diff_time(*end_res, new_start);
     if (!new_dur_res.has_value()) {
         return tl::unexpected(new_dur_res.error());
     }
 
+    const auto delta_res = diff_time(new_start, old_start);
+    if (!delta_res.has_value()) {
+        return tl::unexpected(delta_res.error());
+    }
+
     clip.start = new_start;
     clip.duration = *new_dur_res;
 
-    const model::ClipKind c_kind = model::kind_of(clip.content);
-    if (c_kind == model::ClipKind::Image || c_kind == model::ClipKind::Text) {
-        clip.source_in = model::SourceTime::zero();
-    } else if (new_start > old_start) {
-        const auto delta_ticks = new_start.ticks() - old_start.ticks();
-        const auto c_offset = model::ClipTime::from_ticks(delta_ticks);
-        const auto source_res = model::clip_to_source(original_clip, c_offset);
-        if (!source_res.has_value()) {
-            return tl::unexpected(source_res.error());
-        }
-        clip.source_in = source_res.value();
-    } else if (new_start < old_start) {
-        const auto delta_ticks = old_start.ticks() - new_start.ticks();
-        const auto scaled_res = core::mul_div(delta_ticks, clip.speed.numerator(),
-                                              clip.speed.denominator(), core::RoundingMode::Floor);
-        if (!scaled_res.has_value()) {
-            return tl::unexpected(scaled_res.error());
-        }
-        const auto new_source_ticks = clip.source_in.ticks() - *scaled_res;
-        if (new_source_ticks < 0) {
-            return core::make_error(core::ErrorCode::InvalidArgument,
-                                    "head trim extends source earlier than zero");
-        }
-        clip.source_in = model::SourceTime::from_ticks(new_source_ticks);
+    const auto adv_status = advance_source_in(clip, *delta_res);
+    if (!adv_status.has_value()) {
+        return adv_status;
     }
 
     fit_audio_fades(clip);

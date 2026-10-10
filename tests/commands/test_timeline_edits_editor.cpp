@@ -182,5 +182,41 @@ TEST(TimelineEditsEditorTest, DeterminismAcrossIdenticallySeededEditors) {
     EXPECT_TRUE(model::identical(*editor1.snapshot(), *editor2.snapshot()));
 }
 
+TEST(TimelineEditsEditorTest, TransactionWithRollEditThenSlideClipSingleUndoRestoresInitial) {
+    core::UuidGenerator gen(1405ULL);
+    auto ed_res = Editor::create(model::test::build_valid_project(gen), gen);
+    ASSERT_TRUE(test::is_ok(ed_res));
+    Editor& editor = *ed_res.value();
+
+    const auto initial_snapshot = editor.snapshot();
+    const auto main_seq_id = initial_snapshot->main_sequence;
+    const auto clip0_id = initial_snapshot->sequences.at(main_seq_id).tracks[0].clips[0].id;
+    const auto clip1_id = initial_snapshot->sequences.at(main_seq_id).tracks[0].clips[1].id;
+
+    auto tx_res = editor.begin_transaction("Roll and Slide Batch");
+    ASSERT_TRUE(test::is_ok(tx_res));
+    auto& tx = tx_res.value();
+
+    // 1. RollEdit: move boundary between Clip 0 and Clip 1 from 5s to 4s
+    RollEdit roll_cmd{main_seq_id, clip0_id, clip1_id, timeline_at_seconds(4), true};
+    ASSERT_TRUE(test::is_ok(tx.execute(roll_cmd)));
+
+    // 2. SlideClip: slide Clip 1 from 4s to 5s (+1s), rolling Clip 0 and Clip 2
+    SlideClip slide_cmd{main_seq_id, clip1_id, timeline_at_seconds(5), true};
+    ASSERT_TRUE(test::is_ok(tx.execute(slide_cmd)));
+
+    // Commit as single step
+    auto commit_res = tx.commit();
+    ASSERT_TRUE(test::is_ok(commit_res));
+
+    EXPECT_TRUE(editor.can_undo());
+    EXPECT_EQ(editor.undo_label(), "Roll and Slide Batch");
+
+    // Single undo restores the exact initial snapshot
+    auto undo_res = editor.undo();
+    ASSERT_TRUE(test::is_ok(undo_res));
+    EXPECT_TRUE(model::identical(*editor.snapshot(), *initial_snapshot));
+}
+
 }  // namespace
 }  // namespace nxtcut::commands
