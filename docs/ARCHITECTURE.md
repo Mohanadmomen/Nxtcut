@@ -87,11 +87,11 @@ Professional multi-track timeline editing requires sub-frame precision, audio-sa
 ### 2. `model`
 Defines the pure, immutable-ready document object model for multi-track video editing, including projects, sequences, tracks, clips, effects, media asset descriptors, and timeline markers.
 - **Purpose**: Represents timeline structure, media relationships, and visual/audio clip properties as plain data. Contains no threads, I/O, rendering, logging, or Qt coupling. A copy of a `Project` serves as an immutable document snapshot for rendering.
-- **Allowed Dependencies**: `core` (plus standard library).
+- **Allowed Dependencies**: `core`, `keyframes` (plus standard library).
 - **Key Types & Components**:
   - **Entity Identifiers (`ids.hpp`)**: Strongly-typed entity identifiers wrapping `core::Id`: `ProjectId`, `SequenceId`, `TrackId`, `ClipId`, `MediaId`, `EffectId`, `MarkerId`, `LinkId`, and `generate_id<IdT>()`.
   - **Time Coordinate Systems (`time_coords.hpp`, `speed.hpp`)**: Discrete coordinate systems wrapping `core::TimePoint`: `TimelineTime` (sequence timeline), `ClipTime` (relative clip offset), `SourceTime` (source media instant), and exact reduced rational `Speed`. No implicit conversions or arithmetic operations cross coordinate system boundaries.
-  - **Animatable Properties (`property.hpp`)**: `Property<T>` container wrapping constant values with future-proof keyframe animation abstraction.
+  - **Animatable Properties (`property.hpp`)**: `Property<T>` container wrapping constant values with optional keyframe animation via `std::shared_ptr<const keyframes::KeyframeTrack<T>>` for animatable types.
   - **Visual & Audio Properties (`transform.hpp`, `blend_mode.hpp`, `effect.hpp`)**: `TransformProps` (position, scale, rotation, anchor, opacity, crops), `BlendMode` enumerations, and `EffectInstance` parameter configurations.
   - **Clips & Media Descriptors (`media.hpp`, `clip.hpp`)**: `MediaAsset`, `MediaKind`, and `Clip` holding `ClipContent` (`VideoContent`, `AudioContent`, `ImageContent`, `TextContent`, `CompoundContent`). Checked time conversions (`clip_end`, `timeline_to_clip`, `clip_to_timeline`, `clip_to_source`, `timeline_to_source`, `source_to_clip`, `source_span`).
   - **Tracks & Sequences (`track.hpp`, `sequence.hpp`)**: `Track`, `TrackKind`, `Marker`, `Sequence`, and `sequence_duration()`.
@@ -114,7 +114,7 @@ Provides the transactional mutation engine and history management for document m
 ### 4. `keyframes`
 Manages parameter animation over time, implementing keyframe storage, interpolation algorithms (linear, bezier, easing curves), parameter evaluation at arbitrary timestamps, and spatial/temporal curve math.
 - **Purpose**: Pure curve mathematics, interpolation value types, and keyframe tracks with zero-allocation, noexcept hot-path evaluation.
-- **Allowed Dependencies**: `core` (Note: in Step 4B, `model` will be allowed to depend on `keyframes` to wire `KeyframeTrack<T>` into `Property<T>`).
+- **Allowed Dependencies**: `core` (used by `model`, `commands`, `storage`, `render`, `effects`).
 - **Key Types & Components**:
   - **Easing Presets (`easing.hpp`)**: `EasingKind` with 19 variants (Linear and In/Out/InOut for Sine, Quad, Cubic, Quart, Expo, Circ), `ease(kind, t)`, `to_string`, and `easing_from_string`.
   - **Interpolation Specification (`interpolation.hpp`)**: `Interpolation` trivially copyable value type supporting Hold, Linear, Easing, and CSS-style cubic-bezier (`map_progress()`).
@@ -158,7 +158,7 @@ The engine enforces an acyclic dependency graph. The table below defines the exa
 | Module | Allowed Dependencies | Purpose Summary |
 | :--- | :--- | :--- |
 | `core` | *(None)* | Primitives, types, error models, versioning |
-| `model` | `core` | Timeline entities, tracks, clips |
+| `model` | `core`, `keyframes` | Timeline entities, tracks, clips |
 | `keyframes` | `core` | Temporal curves and interpolation math |
 | `commands` | `core`, `model`, `keyframes` | Undo/redo and transactional mutations |
 | `storage` | `core`, `model`, `keyframes` | Project file serialization and loading |

@@ -29,4 +29,5 @@ nxtcut_add_module(
         include/nxtcut/model/validation.hpp
     DEPENDS
         nxtcut::core
+        nxtcut::keyframes
 )

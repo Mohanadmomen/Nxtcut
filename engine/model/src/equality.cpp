@@ -1,3 +1,4 @@
+#include <nxtcut/keyframes/keyframe_track.hpp>
 #include <nxtcut/model/equality.hpp>
 
 #include <algorithm>
@@ -20,6 +21,21 @@ namespace {
     return std::bit_cast<std::uint32_t>(a) == std::bit_cast<std::uint32_t>(b);
 }
 
+template <keyframes::Animatable T>
+[[nodiscard]] bool identical_tracks(const keyframes::KeyframeTrack<T>* a,
+                                    const keyframes::KeyframeTrack<T>* b) noexcept {
+    if (a == nullptr && b == nullptr) {
+        return true;
+    }
+    if (a == nullptr || b == nullptr) {
+        return false;
+    }
+    if (a == b) {
+        return true;
+    }
+    return keyframes::identical(*a, *b);
+}
+
 }  // namespace
 
 bool identical(const core::Color& a, const core::Color& b) noexcept {
@@ -28,7 +44,10 @@ bool identical(const core::Color& a, const core::Color& b) noexcept {
 }
 
 bool identical(const Property<double>& a, const Property<double>& b) noexcept {
-    return bit_identical_double(a.constant_value(), b.constant_value());
+    if (!bit_identical_double(a.constant_value(), b.constant_value())) {
+        return false;
+    }
+    return identical_tracks(a.keyframes(), b.keyframes());
 }
 
 bool identical(const Property<bool>& a, const Property<bool>& b) noexcept {
@@ -40,7 +59,10 @@ bool identical(const Property<std::string>& a, const Property<std::string>& b) n
 }
 
 bool identical(const Property<core::Color>& a, const Property<core::Color>& b) noexcept {
-    return identical(a.constant_value(), b.constant_value());
+    if (!identical(a.constant_value(), b.constant_value())) {
+        return false;
+    }
+    return identical_tracks(a.keyframes(), b.keyframes());
 }
 
 bool identical(const VideoStreamInfo& a, const VideoStreamInfo& b) noexcept {

@@ -18,8 +18,10 @@ Priority order for every decision: (1) clean, modular, tested code; (2) correctn
 | 3A | Commands infrastructure | ChangeSet, apply/inverse, History, Editor, transactions, listeners, 15 simple commands, `model::identical` | 2 | done |
 | 3B | Timeline edits | add, insert, overwrite, move, delete, split, trim, ripple delete, close gap, join, link, unlink | 3A | done |
 | 3C-1 | Advanced edits (1) | roll, slip, slide; unify source-offset rounding between ripple and non-ripple trims | 3B | done |
-| 3C-2 | Advanced edits (2) | rate-stretch (speed limited to 1/100x..100x), track push/pull (`ShiftTrackClips`) | 3C-1 | NEXT |
-| 4 | Keyframes | curves, bezier, easing presets, spring, interpolation, animated properties, motion modifiers, keyframe commands. Must first settle the `model -> keyframes` dependency | 1B, 2, 3A | todo |
+| 3C-2 | Advanced edits (2) | rate-stretch (speed limited to 1/100x..100x), track push/pull (`ShiftTrackClips`) | 3C-1 | done |
+| 4A | Keyframes module | `keyframes` (core-only): easing presets, CSS-style cubic bezier, `Interpolation`, `Keyframe<T>`, `KeyframeTrack<T>` with allocation-free evaluation and playback cursor | 1B | done |
+| 4B | Animated properties | `model` may depend on `keyframes`; `Property<T>` holds an optional shared immutable `KeyframeTrack<T>` (double, Color); `identical()` | 4A, 2 | done |
+| 4C | Keyframe commands | add, move, remove, set-interpolation, clear keyframes (with undo); keyframe handling when clips are trimmed, split, joined, stretched; then spring and motion modifiers | 4B, 3A | NEXT |
 | 5 | Storage | JSON project files, schema version and migrations, workspace layout, autosave, trash, ZIP bundles, orphan cleanup | 2, 4 | todo |
 | 6 | Media layer | FFmpeg probe, decode, frame-accurate seek, hardware-decode hooks, thumbnails, waveforms, proxies, relink, ProRes. Consider a tiny FFmpeg spike on all CI platforms around Step 5 | 1B | todo |
 | 7 | Playback | master clock, decode-ahead scheduler, frame cache, scrubbing, adaptive quality | 3, 6 | todo |

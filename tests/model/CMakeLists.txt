@@ -10,6 +10,7 @@ nxtcut_add_module_test(
         ids_test.cpp
         media_test.cpp
         project_test.cpp
+        property_keyframes_test.cpp
         property_test.cpp
         sequence_test.cpp
         speed_test.cpp

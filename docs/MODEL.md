@@ -80,6 +80,23 @@ Scaling conversions (`clip_to_source`, `source_to_clip`, `source_span`) use `cor
 
 ---
 
+## Animatable Properties (`Property<T>`)
+
+`Property<T>` models an animatable parameter value:
+- **Storage**: Holds a constant value of type `T` and, for animatable payload types satisfying `keyframes::Animatable<T>` (`double` and `core::Color`), an optional `std::shared_ptr<const keyframes::KeyframeTrack<T>>` (null = not animated). Non-animatable types (`bool`, `std::string`) remain constant-only with zero track storage overhead via `[[no_unique_address]]`.
+- **Evaluation**:
+  - `value_at(ClipTime)` evaluates in $O(1)$ when not animated (returning the constant) and $O(\log n)$ when animated (binary search in track).
+  - `value_at(ClipTime, Cursor&)` evaluates in $O(1)$ amortized sequential playback via keyframe track cursor caching. When not animated, returns the constant and leaves the cursor untouched. Results are bit-identical to `value_at(ClipTime)`.
+- **Semantics**:
+  - The constant remains stored while animated; `set_constant()` while animated only alters the constant without affecting track evaluation; `clear_keyframes()` restores constant evaluation.
+  - `set_keyframes()` with an empty track clears the animation (shared pointer reset).
+  - Keyframe tracks are immutable and shared across `Property` copies (copy-on-write), ensuring project snapshots and history copies remain cheap.
+  - Keyframe times are clip-relative ticks (`ClipTime`) and may lie outside the clip bounds; interpolated overshoot is permitted and clamped by downstream consumers (e.g. renderers).
+  - Keyframe invariants (monotonic time, finiteness, tick bounds) are guaranteed by `KeyframeTrack`; document validation does not add extra range checks on keyframes.
+- **Thread Safety**: Thread-compatible; concurrent const access is safe as tracks are immutable and shared.
+
+---
+
 ## Clip Content Variants
 
 Clips contain a `ClipContent` variant holding one of five specialized content descriptors:
@@ -149,9 +166,10 @@ Validation issues are emitted in the following deterministic sequence:
 ## Exact Value Comparison (`identical`)
 
 To detect no-op mutations and verify snapshot identity in tests without altering value semantics, `nxtcut::model::identical` provides exact field-by-field equality comparisons (`identical(const X&, const X&)`) across model structures:
-- **Bit-Exact Floating-Point Comparisons**: All `double` values (such as `Property<double>`) and `float` color channels (inside `core::Color`) are compared bit-for-bit using `std::bit_cast` to same-size unsigned integers (`std::uint64_t` and `std::uint32_t`). Under this rule:
+- **Bit-Exact Floating-Point Comparisons**: All `double` values (such as `Property<double>` constants) and `float` color channels (inside `core::Color` constants) are compared bit-for-bit using `std::bit_cast` to same-size unsigned integers (`std::uint64_t` and `std::uint32_t`). Under this rule:
   - `0.0` and `-0.0` evaluate as **different** (differing sign bit).
   - Two identical quiet NaN values evaluate as **identical** (identical bit pattern).
+- **Animatable Properties**: `Property<double>` and `Property<core::Color>` compare constant values bit-exactly AND compare keyframe tracks: both null are identical, exactly one null differs, identical pointers evaluate equal (fast path), otherwise elements are compared via `keyframes::identical`. `Property<bool>` and `Property<std::string>` compare constant values directly.
 - **Composite Types**:
   - `std::map` and `std::vector` compare sizes and elements in order.
   - Variants (`ClipContent`, `EffectParam`) compare the alternative index and active value.

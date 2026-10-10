@@ -69,9 +69,17 @@ Speed is a primary design constraint: property evaluation occurs per animated pr
 
 ---
 
+## Integration with `model::Property`
+
+In Step 4B, `nxtcut::model::Property<T>` integrates keyframe animation for animatable types (`double` and `core::Color`):
+- **Shared Immutable Tracks**: `Property<T>` stores an optional `std::shared_ptr<const KeyframeTrack<T>>` alongside the constant value. Tracks are immutable; updates perform copy-on-write (`std::make_shared`), allowing document snapshots and history copies to remain cheap refcount increments.
+- **Evaluation & Caching**: `Property::value_at(ClipTime)` evaluates in $O(1)$ for constant properties and $O(\log n)$ for animated properties. Sequential playback utilizes `Property::value_at(ClipTime, KeyframeTrack<T>::Cursor&)` for amortized $O(1)$ evaluation, producing bit-identical results.
+- **Equality Comparison**: `model::identical` verifies bit-exact equality of constant values and keyframe tracks (`keyframes::identical`).
+
+---
+
 ## Deferred Scope
 
 The following capabilities are intentionally deferred to future steps:
-- **Step 4B**: Integration into `nxtcut::model::Property<T>`, updating project validation and `identical` equality tests.
 - **Step 4C**: Transactional editing commands (`AddKeyframe`, `MoveKeyframe`, `RemoveKeyframe`, `SetKeyframeInterpolation`, trim shift/ripple).
 - **Post-4C**: Spring physics simulation curves and motion modifiers (wiggle, overshoot, inertia).
