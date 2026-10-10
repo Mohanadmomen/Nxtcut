@@ -21,7 +21,7 @@ from pathlib import Path
 # render -> effects -> audio -> export -> plugins -> analysis
 ALLOWED_DEPENDENCIES: dict[str, list[str]] = {
     "core": [],
-    "model": ["core"],
+    "model": ["core", "keyframes"],
     "keyframes": ["core"],
     "commands": ["core", "model", "keyframes"],
     "storage": ["core", "model", "keyframes"],

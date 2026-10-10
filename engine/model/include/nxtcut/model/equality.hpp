@@ -26,8 +26,9 @@ namespace nxtcut::model {
 /**
  * @brief Exact bit-level equality for Property<double>.
  *
- * Compares payload values bit-for-bit via std::bit_cast<uint64_t>.
- * 0.0 differs from -0.0; identical NaNs are identical.
+ * Compares constant values bit-for-bit via std::bit_cast<uint64_t> (0.0 differs from -0.0)
+ * and compares keyframe tracks: both null are identical, exactly one null differs,
+ * identical pointers evaluate equal, otherwise compares tracks via keyframes::identical.
  */
 [[nodiscard]] bool identical(const Property<double>& a, const Property<double>& b) noexcept;
 
@@ -44,6 +45,10 @@ namespace nxtcut::model {
 
 /**
  * @brief Exact bit-level equality for Property<core::Color>.
+ *
+ * Compares constant color components bit-for-bit and compares keyframe tracks:
+ * both null are identical, exactly one null differs, identical pointers evaluate equal,
+ * otherwise compares tracks via keyframes::identical.
  */
 [[nodiscard]] bool identical(const Property<core::Color>& a,
                              const Property<core::Color>& b) noexcept;
