@@ -1,9 +1,10 @@
 # NxtCut - Project State
 
 Single place to see what NxtCut is, what is done, what is left, and how to work on it.
-Read this first. Update it after every merged step (the "Status" and "Next" sections).
+Read this first. The full plan (every step, UI steps, milestones) is in `docs/ROADMAP.md`.
+Update this file after every merged step (the "Status" and "Next" sections).
 
-Last updated: 2026-10-09 (Step 3B merged, 436 tests, CI green).
+Last updated: 2026-10-10 (Step 3B and its cleanup merged, 436 tests, CI green).
 
 ## What NxtCut is
 A professional multi-track desktop video editor: C++20, Qt 6 (Widgets) for the UI, MIT licensed.
@@ -23,7 +24,8 @@ drift, no data loss); (3) performance; (4) feature count.
 | 2 | `model`: project, sequence, track, clip, validation, compound-clip graph | done |
 | 3A | `commands`: ChangeSet, History, Editor, transactions, 15 simple commands | done |
 | 3B | Timeline edits: add, insert, overwrite, move, delete, split, trim, ripple delete, close gap, join, link, unlink | done (merged) |
-| 3C | Advanced edits: roll, slip, slide, rate-stretch, track push/pull | NEXT |
+| 3C-1 | Advanced edits (1): roll, slip, slide; unify source-offset rounding of ripple/non-ripple trims | NEXT |
+| 3C-2 | Advanced edits (2): rate-stretch (speed 1/100x..100x), track push/pull (`ShiftTrackClips`) | todo |
 | 4 | Keyframes and animated properties | todo |
 | 5 | Storage: JSON project files, schema versions, autosave | todo |
 | 6 | Media layer: FFmpeg probe/decode/seek, thumbnails, waveforms | todo |
@@ -55,6 +57,12 @@ C++20 + Qt Widgets; CMake presets + vcpkg; GoogleTest; FFmpeg linked dynamically
 CPU renderer is the reference, GPU later; build order: model, commands, keyframes, storage, then media;
 timeline edits follow mainstream editors (sync-lock ripple, frame snapping, linked clips edit together);
 no Adobe plugin loading (proprietary), OpenFX and VST3/CLAP instead.
+
+## Next
+Write the Step 3C-1 prompt (`RollEdit`, `SlipClip`, `SlideClip`) and implement it on branch
+`step-3c1-roll-slip-slide`. Defaults agreed: all three edit linked clips together (flag `ignore_links`), fail as a
+whole on locked tracks, limited by media handles. Planned in the same step: one shared helper for
+"source offset from a timeline delta" so ripple and non-ripple trims round identically.
 
 ## Known technical debt
 - `diff_to_changes` and clip lookups are linear (fine now; benchmark at Steps 6-7).

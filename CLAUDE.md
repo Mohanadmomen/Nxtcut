@@ -1,7 +1,7 @@
 # CLAUDE.md - instructions for Claude (design, review, prompt writing)
 
-Read this file, `CLAUDE.local.md` (if present) and `docs/PROJECT_STATE.md` at the start of every new chat, then
-continue from the "NEXT" step.
+Read this file, `CLAUDE.local.md` (if present), `docs/PROJECT_STATE.md` (where we are) and `docs/ROADMAP.md` (the full
+plan) at the start of every new chat, then continue from the "Next" section of PROJECT_STATE.
 `AGENTS.md` is for the coding agent (Gemini in Antigravity); do not paste it anywhere, it is read automatically.
 
 ## Roles
