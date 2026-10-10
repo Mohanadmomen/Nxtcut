@@ -207,9 +207,42 @@ All timeline commands are immutable plain data structs. `build(const Project&, c
 | `UnlinkClips` | `sequence`, `clip_ids`, `ignore_links` | Clears link associations. Unless `ignore_links`, clears the entire link group of each named clip; with `ignore_links`, clears only named clips and link repair removes orphan links (< 2 members). Unlinking unlinked clips returns an empty `ChangeSet`. Locked tracks of affected clips fail with `"locked"`. |
 
 ---
+
+## Step 3C-1 Advanced Trimming Commands
+
+Step 3C-1 introduces advanced trimming modes: `RollEdit`, `SlipClip`, and `SlideClip`. All three operate transactionally via `ChangeSet`, preserve the total timeline duration of the edited region, and do not create or delete clips (`created_clips` is empty).
+
+### General Design & Conventions
+
+#### 1. Source-Offset Rounding
+When converting a timeline delta to source media ticks across rational playback speeds, the calculation is evaluated as:
+$$\text{sign}(\Delta) \cdot \lfloor |\Delta| \cdot \frac{\text{numerator}}{\text{denominator}} \rfloor$$
+Rounding is strictly toward zero (`core::RoundingMode::Floor` on $|\Delta|$ followed by negation for negative deltas). This rule is implemented in a single unified helper (`detail::source_offset_for_delta`) and shared by head trims, roll edits, slip edits, and slide edits to guarantee reversible symmetric rounding and zero accumulated subframe drift.
+
+#### 2. Media Handle Limits
+Media boundaries and source limits are treated as hard barriers rather than clamps: an edit requiring source ticks before zero or beyond the media duration fails immediately with `ErrorCode::InvalidArgument`. Image and Text clips have no source handle limits (their `source_in` remains zero).
+
+#### 3. Locked Track and Link Invariants
+- If any track containing a primary edited clip, linked partner, or neighbor is locked, the entire command fails with `ErrorCode::InvalidArgument` containing `"locked"`.
+- Linked clips are coordinated together by default unless `ignore_links == true`.
+- No clips are added or removed; therefore, `repair_links()` is not needed.
+
+---
+
+### Part 3 Commands Reference
+
+| Command | Arguments | Business & Validation Rules |
+| :--- | :--- | :--- |
+| `RollEdit` | `sequence`, `left`, `right`, `new_edit`, `ignore_links` | Rolls the edit point between adjacent touching clips on the same track to `snap(new_edit)`. Left clip's tail and right clip's head move by `delta = snapped - end_of(left)`. Non-adjacent clips or clips on different tracks fail with `"adjacent"`. Left and right clips sharing the same `LinkId` fail with `"same link"` unless `ignore_links`. Both clips (and affected partners) must maintain at least 1 frame of duration (failing with `"one frame"`). Audio fades are fitted via `fit_audio_fades`. Locked tracks fail with `"locked"`. Zero delta returns empty `ChangeSet`. |
+| `SlipClip` | `sequence`, `clip`, `delta`, `ignore_links` | Slips source media by `snap_delta(delta)` without changing timeline start or duration. Positive delta shifts to later source content. Image and Text clips cannot be slipped (fail with `"slip"`). Unless `ignore_links`, linked partners slip by the same timeline delta using their respective playback speeds. Source handle limits enforced via `validate_clip_media_and_source`. Locked tracks fail with `"locked"`. Zero delta returns empty `ChangeSet`. |
+| `SlideClip` | `sequence`, `clip`, `new_start`, `ignore_links` | Slides clip to `snap(new_start)`. Slid clip retains duration and source offset. Left neighbor's tail and right neighbor's head roll by `delta = snapped - start`. Slid clip and linked partners must each have touching neighbors on both sides (failing with `"neighbor"`). Ambiguous clip roles (clip participating in multiple roles or touching linked clips both slid) fail with `"ambiguous"`. Neighbors must retain at least 1 frame of duration (failing with `"one frame"`). Locked tracks fail with `"locked"`. Zero delta returns empty `ChangeSet`. |
+
+---
 ## Roadmap: Steps 3B and 3C
 
 - **Step 3B (Implemented)**: 12 timeline geometry editing commands (`AddClips`, `InsertClips`, `OverwriteClips`, `MoveClips`, `DeleteClips`, `SplitClip`, `TrimClip`, `RippleDeleteClips`, `CloseGap`, `JoinClips`, `LinkClips`, `UnlinkClips`) with frame snapping, ripple scoping, linked audio/video edit coordination, deterministic ID generation order, fade fitting, and transactional undo/redo via `ChangeSet`.
-- **Step 3C (Next)**: Advanced trimming modes (roll edit, slip edit, slide edit, rate-stretch edit, timeline track push/pull).
+- **Step 3C-1 (Implemented)**: Advanced trimming modes (`RollEdit`, `SlipClip`, `SlideClip`) with unified source-offset rounding toward zero, partner coordination, ambiguous role validation, and handle boundary limits.
+- **Step 3C-2 (Next)**: Additional advanced trimming and rate manipulation (rate-stretch edit, timeline track push/pull).
+
 
 

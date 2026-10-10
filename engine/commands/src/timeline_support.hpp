@@ -56,6 +56,34 @@ namespace nxtcut::commands::detail {
 void fit_audio_fades(model::Clip& clip) noexcept;
 
 /**
+ * @brief Computes the source offset in ticks for a given timeline delta and playback speed.
+ *
+ * Rounds toward zero: sign(delta) * floor(|delta| * numerator / denominator).
+ *
+ * @param speed Rational playback speed.
+ * @param delta Signed timeline duration delta.
+ * @return Source offset in ticks, or ErrorCode::Overflow if arithmetic overflows.
+ * @note Thread safety: Thread-safe (pure function).
+ */
+[[nodiscard]] core::Result<std::int64_t> source_offset_for_delta(const model::Speed& speed,
+                                                                 core::Duration delta) noexcept;
+
+/**
+ * @brief Advances a clip's source_in timestamp by a signed timeline duration delta.
+ *
+ * Sets source_in to zero for Image and Text clips. For Video, Audio, and Compound clips,
+ * scales delta to source ticks using source_offset_for_delta and checks for underflow.
+ *
+ * @param clip The clip to modify.
+ * @param timeline_delta Signed timeline duration delta.
+ * @return Success, or ErrorCode::InvalidArgument if source_in becomes negative,
+ *         or ErrorCode::Overflow on arithmetic overflow.
+ * @note Thread safety: Mutates the provided clip; caller must ensure exclusive access.
+ */
+[[nodiscard]] core::Status advance_source_in(model::Clip& clip,
+                                             core::Duration timeline_delta) noexcept;
+
+/**
  * @brief Working copy of a single track's clips during command execution.
  */
 struct ScratchTrack {
@@ -96,6 +124,7 @@ public:
 
     [[nodiscard]] core::Result<model::TimelineTime> snap_time(model::TimelineTime t) const noexcept;
     [[nodiscard]] core::Result<core::Duration> snap_duration(core::Duration d) const noexcept;
+    [[nodiscard]] core::Result<core::Duration> snap_delta(core::Duration d) const noexcept;
 
     [[nodiscard]] bool is_clip_compatible(model::TrackKind track_kind,
                                           const model::ClipContent& content) const noexcept;
