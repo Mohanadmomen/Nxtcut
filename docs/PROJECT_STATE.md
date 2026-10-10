@@ -4,7 +4,7 @@ Single place to see what NxtCut is, what is done, what is left, and how to work 
 Read this first. The full plan (every step, UI steps, milestones) is in `docs/ROADMAP.md`.
 Update this file after every merged step (the "Status" and "Next" sections).
 
-Last updated: 2026-10-10 (Step 4B merged, 541 tests, CI green).
+Last updated: 2026-10-10 (Step 4C-1 built, 560 tests expected; merge pending green CI).
 
 ## What NxtCut is
 A professional multi-track desktop video editor: C++20, Qt 6 (Widgets) for the UI, MIT licensed.
@@ -28,7 +28,8 @@ drift, no data loss); (3) performance; (4) feature count.
 | 3C-2 | Advanced edits (2): rate-stretch (speed 1/100x..100x), track push/pull (`ShiftTrackClips`) | done (merged) |
 | 4A | `keyframes` module: easing, cubic bezier, keyframe track, fast evaluation (core-only, no model changes) | done (merged) |
 | 4B | Wire keyframes into `Property<T>`; `model` may depend on `keyframes`; `identical` (no new validation rules) | done (merged) |
-| 4C | Keyframe commands (add, move, delete, set interpolation) and keyframe handling on trims; then spring and motion modifiers | NEXT |
+| 4C-1 | Keyframes in timeline edits: `model/clip_animation.hpp` (`for_each_animatable_property`, `shift_keyframes`, `scale_keyframes`); split, head trims, roll, slide, overwrite, insert, rate-stretch, join keep keyframed motion attached (rules R1-R5 in `docs/COMMANDS.md`) | done (pending merge) |
+| 4C-2 | Keyframe commands (set, remove, move, set interpolation, clear) with `model::PropertyRef`; then spring and motion modifiers | NEXT |
 | 5 | Storage: JSON project files, schema versions, autosave | todo |
 | 6 | Media layer: FFmpeg probe/decode/seek, thumbnails, waveforms | todo |
 | 7 | Playback: clock, decode-ahead, frame cache, scrubbing | todo |
@@ -63,22 +64,23 @@ timeline edits follow mainstream editors (sync-lock ripple, frame snapping, link
 no Adobe plugin loading (proprietary), OpenFX and VST3/CLAP instead.
 
 ## Next
-Step 4C on a new branch (suggested `step-4c-keyframe-commands`): keyframe commands in `commands`. Already true
-after 4B: `Property<double>` and `Property<core::Color>` can hold a shared immutable `KeyframeTrack<T>`
-(`set_keyframes`, `clear_keyframes`, `keyframes()`, `value_at(ClipTime)`, `value_at(ClipTime, Cursor&)`);
-keyframe times are clip-relative ticks and may lie outside the clip; the model validator has no range rules for
-property values, so keyframes need no validation; edits copy the track, change the copy, and call
-`set_keyframes` (never mutate a shared track). Open design questions to ask the user first (recommended
-default in brackets): (1) how a command addresses a property: a `PropertyRef` naming clip + transform field,
-audio volume, text size/color, or effect id + param name [one small value type, resolved by a single helper
-used by all keyframe commands]; (2) command set [`SetKeyframe` (insert or replace), `RemoveKeyframe`,
-`MoveKeyframe`, `SetKeyframeInterpolation`, `ClearKeyframes`, all undoable via the existing ChangeSet
-machinery]; (3) what happens to keyframes on head trim, split, join, slip, rate-stretch [keep clip-relative times
-unchanged on tail trims; on head trims shift keyframes by the head delta so motion stays attached to the
-media; split copies the relevant keyframes to both halves with an interpolated boundary keyframe; rate-stretch
-scales keyframe times by the duration ratio; join concatenates; each rule gets its own tests]; (4) whether to
-split 4C into 4C-1 (commands) and 4C-2 (trim/split/join/stretch handling) [yes, two steps]. Spring easing and
-motion modifiers come after 4C.
+Step 4C-2 on a new branch (suggested `step-4c2-keyframe-commands`): keyframe COMMANDS in `commands`. Already true
+after 4C-1: every timeline edit keeps keyframes attached (split = shift-only, head edits shift by -delta,
+rate-stretch scales, join is the exact inverse of split; see `docs/COMMANDS.md`, Step 4C-1) and
+`model::for_each_animatable_property` is the single place that knows every animatable property of a clip.
+Defaults decided for 4C-2 (the maintainer said "go"):
+(1) `model::PropertyRef`, one small value type in `model` (transform field, audio volume, text font size,
+text color, effect id + param name) with one resolver used by all keyframe commands and by the visitor's
+ordering; effect params are included although no AddEffect command exists yet (tests build effects through the
+model); (2) commands `SetKeyframe` (insert or replace), `RemoveKeyframe`, `MoveKeyframe`,
+`SetKeyframeInterpolation`, `ClearKeyframes`, all through the existing ChangeSet machinery; edits copy the track,
+change the copy, call `set_keyframes` (never mutate a shared track); (3) rules: set/move snap the time to the frame
+grid and require `0 <= time <= clip.duration`; value type must match the property (double vs Color); ranges as for
+constants (opacity and crop in [0,1], volume >= 0, font size > 0, others finite); wrong clip kind (for example
+transform on an audio clip) gives InvalidArgument "not applicable"; unknown keyframe gives NotFound; locked track
+gives "locked"; `MoveKeyframe` onto an occupied time fails; no-ops give an empty ChangeSet; linked partners are
+never touched; (4) `SetClipProperties` also range-checks the keyframe values inside a supplied transform's tracks.
+Spring easing and motion modifiers come after 4C-2.
 
 ## Known technical debt
 - `diff_to_changes` and clip lookups are linear (fine now; benchmark at Steps 6-7).
@@ -86,6 +88,12 @@ motion modifiers come after 4C.
 - `SlipClip` with a zero delta on an image or text clip returns an empty ChangeSet instead of the "slip" error.
 - `spdlog` is installed but unused. `compile_checks.hpp` exists twice (tests/core, tests/model).
 - GitHub Actions versions should be bumped; add `THIRD_PARTY_NOTICES` when the first dependency is bundled.
+- Keyframes outside a clip's range are kept on purpose (split is shift-only, tail trims keep them); an explicit
+  "prune out-of-range keyframes" command can come later. `shift_keyframes` and `scale_keyframes` allocate (they
+  rebuild tracks) and are not `noexcept`; clips without animated properties pay only pointer checks.
+- `SetClipProperties` range checks (opacity, crop) look at constants only; 4C-2 adds the keyframe-value checks.
+  The crop_left + crop_right <= 1 rule is not checked across animated values.
+- Sub-frame keyframe times can appear after rate-stretch (times are scaled, not re-snapped); intended.
 
 ## How to build and test (Windows)
 Use the "x64 Native Tools Command Prompt for VS", then from the repo root:

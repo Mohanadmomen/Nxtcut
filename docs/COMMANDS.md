@@ -264,6 +264,40 @@ Violations fail immediately with `ErrorCode::InvalidArgument` containing `"speed
 | `ShiftTrackClips` | `sequence`, `track`, `at`, `delta`, `ignore_links` | Shifts all clips on `track` with `start >= snap(at)` by `snap_delta(delta)`. Unless `ignore_links`, linked partners on any track shift by the same delta once. Collision on target or partner track fails with `"overlap"`. Start before 0 fails with `"negative"`. Unknown track/sequence fails with `NotFound`. `snap(at) < 0` fails with `InvalidArgument`. Locked target or partner track fails with `"locked"`. Empty shifted set or zero delta returns empty `ChangeSet`. |
 
 ---
+
+## Step 4C-1 Keyframes in Timeline Edits
+
+Step 4C-1 guarantees that timeline editing commands keep keyframed motion attached to the correct media content across all geometry mutations.
+
+### Keyframe Rules (R1–R5)
+
+- **R1 SPLIT**: The left half keeps the clip's tracks UNCHANGED (same shared track pointers, zero copies/allocations). The right half receives copies of the animated tracks with every key time shifted by $-\text{left.duration}$. No boundary keyframes are inserted and nothing is trimmed or removed; keyframes outside the clip range remain intact. Evaluation inside each half is bit-identical to the original clip's evaluation at the same instant.
+- **R2 HEAD EDITS**: Any edit that moves the head of a clip while its end remains fixed (non-ripple head trim, ripple head trim, roll of right clip, slide of right neighbor, overwrite head trim, linked partners): every key time shifts by $-\Delta$, where $\Delta = \text{new\_start} - \text{old\_start}$ (the same delta that advances `source_in`). Applies to all clip kinds (including Image and Text).
+- **R3 UNCHANGED**: Tail trims, roll of left clip, slide of slid clip and left neighbor, `SlipClip`, `MoveClips`, `ShiftTrackClips`, `CloseGap`, ripple shifting of other clips: tracks are untouched (same shared pointers).
+- **R4 RATE-STRETCH**: Every key time is scaled by $\frac{\text{new\_duration}}{\text{old\_duration}}$ about the clip start (always about clip start, for tail, head, and ripple head stretches) using `core::mul_div(time, new_ticks, old_ticks, Nearest)`. Values and interpolation styles are preserved. If two keys land on the same tick (or arithmetic overflows / exceeds tick bounds), the entire command fails with `ErrorCode::InvalidArgument` containing `"keyframe collision"` for collisions, or the underlying error. Nothing is dropped silently.
+- **R5 JOIN**: In `JoinClips`, the "otherwise identical" comparison treats the right clip's keys as shifted by $+\text{left.duration}$. Join succeeds only if, after that shift, every animated property of the right clip is `identical()` to the left clip's (exactly reversing R1). The joined clip keeps the left clip's tracks. A mismatch (including one side animated and the other not) fails with `ErrorCode::InvalidArgument` containing `"join pair clips are not otherwise identical"`.
+
+### Command Rule Mapping
+
+| Command | Rules Applied | Affected Elements & Behavior |
+| :--- | :--- | :--- |
+| `SplitClip` | **R1** | Left half keeps shared pointers; right half shifted by $-\text{left.duration}$. |
+| `InsertClips` | **R1**, **R3** | Straddling clips split via R1; shifted subsequent clips follow R3 (untouched). |
+| `OverwriteClips` | **R1**, **R2**, **R3** | Strictly-contains middle excision splits via R1; head trim follows R2; tail trim follows R3. |
+| `TrimClip` | **R2**, **R3** | Head trims (non-ripple and ripple) follow R2; tail trim and ripple-shifted clips follow R3. |
+| `RollEdit` | **R2**, **R3** | Right clip follows R2 (head moved by $\Delta$); left clip follows R3 (tail trim). |
+| `SlideClip` | **R2**, **R3** | Right neighbor follows R2 (head moved by $\Delta$); left neighbor and slid clip follow R3. |
+| `RateStretch` | **R4**, **R3** | Tail, head non-ripple, and ripple head stretches follow R4; ripple-shifted clips follow R3. |
+| `JoinClips` | **R5** | Second clip tested with $+\text{first.duration}$ keyframe shift; joined clip keeps first clip's tracks. |
+| `SlipClip` | **R3** | Untouched (preserves timeline start, duration, and clip-relative keyframe times). |
+| `MoveClips` | **R3** | Untouched (preserves duration and clip-relative keyframe times). |
+| `ShiftTrackClips`| **R3** | Untouched (shifts start only; clip-relative keyframe times untouched). |
+| `CloseGap` | **R3** | Untouched (shifts start only; clip-relative keyframe times untouched). |
+| `RippleDeleteClips`| **R3** | Untouched (shifts start of subsequent clips only). |
+| `AddClips` / `DeleteClips` | **R3** / — | Placed clips keep tracks; deleted clips removed without modifying survivors. |
+| `LinkClips` / `UnlinkClips` | — | Metadata-only edits; tracks untouched. |
+
+---
 ## Roadmap: Steps 3B and 3C
 
 - **Step 3B (Implemented)**: 12 timeline geometry editing commands (`AddClips`, `InsertClips`, `OverwriteClips`, `MoveClips`, `DeleteClips`, `SplitClip`, `TrimClip`, `RippleDeleteClips`, `CloseGap`, `JoinClips`, `LinkClips`, `UnlinkClips`) with frame snapping, ripple scoping, linked audio/video edit coordination, deterministic ID generation order, fade fitting, and transactional undo/redo via `ChangeSet`.

@@ -97,6 +97,29 @@ Scaling conversions (`clip_to_source`, `source_to_clip`, `source_span`) use `cor
 
 ---
 
+## Clip Animation and Keyframe Manipulation (`clip_animation.hpp`)
+
+`nxtcut::model` provides centralized utilities to inspect and transform animatable properties across clips:
+- **Property Traversal (`for_each_animatable_property`)**:
+  Visits all animatable properties of a `Clip` (`Property<double>` and `Property<core::Color>`) in deterministic order:
+  1. The 12 `TransformProps` fields in declaration order (`position_x`, `position_y`, `scale_x`, `scale_y`, `rotation_degrees`, `anchor_x`, `anchor_y`, `opacity`, `crop_left`, `crop_right`, `crop_top`, `crop_bottom`).
+  2. `AudioContent::volume` (if audio clip).
+  3. `TextContent::font_size_px` then `TextContent::color` (if text clip).
+  4. For each `EffectInstance` in `clip.effects` vector order: parameters in `std::map` key order whose variant alternative holds `Property<double>` or `Property<core::Color>` (skipping `bool` and `std::string`).
+- **Keyframe Shifting (`shift_keyframes`)**:
+  Adds a signed duration offset to all keyframe timestamps on every animated property of a clip while preserving keyframe values and interpolation styles.
+  - Zero offset is a non-allocating no-op preserving track pointers.
+  - Arithmetic overflow or timestamps exceeding $[\pm 2^{62}]$ ticks return `core::ErrorCode::InvalidArgument`.
+  - Complexity: $\mathcal{O}(P)$ pointer checks and zero allocations for non-animated clips; $\mathcal{O}(P + K)$ for animated clips ($P$ properties, $K$ total keyframes).
+- **Keyframe Scaling (`scale_keyframes`)**:
+  Scales all keyframe timestamps about clip start by a rational multiplier $\frac{\text{numerator}}{\text{denominator}}$ using `core::mul_div(..., Nearest)`.
+  - Requires positive numerator and denominator ($> 0$). Equal numerator and denominator is a non-allocating no-op.
+  - Detects keyframe collisions in one linear pass: if two distinct keys map to the same tick, returns `core::ErrorCode::InvalidArgument` with message containing `"keyframe collision"`.
+  - Complexity: $\mathcal{O}(P)$ pointer checks and zero allocations for non-animated clips; $\mathcal{O}(P + K)$ for animated clips.
+- **Error Contract**: On error, the clip may be partially updated, but every `Property` still holds a valid track; callers work on scratch copies and discard them on error.
+
+---
+
 ## Clip Content Variants
 
 Clips contain a `ClipContent` variant holding one of five specialized content descriptors:

@@ -3,6 +3,7 @@ nxtcut_add_module_test(
     SOURCES
         blend_mode_test.cpp
         checked_arithmetic_test.cpp
+        clip_animation_test.cpp
         clip_test.cpp
         compound_graph_test.cpp
         effect_test.cpp

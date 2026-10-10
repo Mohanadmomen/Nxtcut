@@ -417,6 +417,16 @@ core::Result<ChangeSet> OverwriteClips::build(const model::Project& project,
                 right.duration = *right_dur_res;
                 right.link_id = std::nullopt;
 
+                const auto right_offset_res = detail::diff_time(ov_end, existing.start);
+                if (!right_offset_res.has_value()) {
+                    return tl::unexpected(right_offset_res.error());
+                }
+                const auto shift_status =
+                    detail::shift_keys_for_head_delta(right, *right_offset_res);
+                if (!shift_status.has_value()) {
+                    return tl::unexpected(shift_status.error());
+                }
+
                 const model::ClipKind c_kind = model::kind_of(existing.content);
                 if (c_kind == model::ClipKind::Image || c_kind == model::ClipKind::Text) {
                     right.source_in = model::SourceTime::zero();

@@ -83,20 +83,38 @@ void fit_audio_fades(model::Clip& clip) noexcept;
 [[nodiscard]] core::Status advance_source_in(model::Clip& clip,
                                              core::Duration timeline_delta) noexcept;
 
+/**
+ * @brief Shifts keyframes of a clip to compensate for moving the clip's head by head_delta.
+ *
+ * For head edits (where the clip start changes by head_delta = new_start - old_start while the end
+ * stays fixed), every keyframe time shifts by -head_delta so that keyframed motion remains attached
+ * to the content.
+ *
+ * Complexity: O(P) if non-animated (0 allocations), O(P + K) if animated (K = total keys).
+ *
+ * @param clip The clip to modify.
+ * @param head_delta Signed duration delta advancing the clip's start (new_start - old_start).
+ * @return Success, or ErrorCode::Overflow / ErrorCode::InvalidArgument on arithmetic failure.
+ * @note Thread safety: Mutates the provided clip; caller must ensure exclusive access.
+ */
+[[nodiscard]] core::Status shift_keys_for_head_delta(model::Clip& clip, core::Duration head_delta);
+
 inline constexpr std::int64_t kMaxSpeedFactor = 100;  // speed must stay within 1/100 .. 100/1
 
 /**
- * @brief Sets clip.speed so that the clip's CURRENT source span is played over new_duration, then
- * sets clip.duration = new_duration. source_in is unchanged.
+ * @brief Sets clip.speed so that the clip's CURRENT source span is played over new_duration, sets
+ * clip.duration = new_duration, and scales all keyframe times by new_duration / old_duration.
+ * source_in is unchanged.
+ *
+ * Complexity: O(P) if non-animated (0 allocations), O(P + K) if animated (K = total keys).
  *
  * @param clip The clip to modify.
  * @param new_duration New timeline duration (> 0).
  * @return Success, or ErrorCode::InvalidArgument if clip kind is Image/Text, new_duration <= 0,
- *         or speed is outside 1/100..100/1.
+ *         speed is outside 1/100..100/1, or keyframe scaling suffers collision / range error.
  * @note Thread safety: Mutates the provided clip; caller must ensure exclusive access.
  */
-[[nodiscard]] core::Status stretch_to_duration(model::Clip& clip,
-                                               core::Duration new_duration) noexcept;
+[[nodiscard]] core::Status stretch_to_duration(model::Clip& clip, core::Duration new_duration);
 
 /**
  * @brief Working copy of a single track's clips during command execution.
