@@ -4,6 +4,7 @@
 #include <nxtcut/core/mul_div.hpp>
 #include <nxtcut/model/checked_arithmetic.hpp>
 #include <nxtcut/model/clip.hpp>
+#include <nxtcut/model/clip_animation.hpp>
 #include <nxtcut/model/equality.hpp>
 #include <nxtcut/model/ids.hpp>
 
@@ -172,6 +173,11 @@ core::Result<ChangeSet> TrimClip::build(const model::Project& project,
                 const auto adv_status = detail::advance_source_in(*cl, delta);
                 if (!adv_status.has_value()) {
                     return tl::unexpected(adv_status.error());
+                }
+
+                const auto shift_status = detail::shift_keys_for_head_delta(*cl, delta);
+                if (!shift_status.has_value()) {
+                    return tl::unexpected(shift_status.error());
                 }
 
                 detail::fit_audio_fades(*cl);
@@ -623,6 +629,11 @@ core::Result<ChangeSet> JoinClips::build(const model::Project& project,
             ac1.fade_out = core::Duration::zero();
             ac2.fade_in = core::Duration::zero();
             ac2.fade_out = core::Duration::zero();
+        }
+
+        const auto shift_status = model::shift_keyframes(copy2, cl1->duration);
+        if (!shift_status.has_value()) {
+            return tl::unexpected(shift_status.error());
         }
 
         if (!model::identical(copy1, copy2)) {

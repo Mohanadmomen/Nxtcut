@@ -3,6 +3,7 @@ nxtcut_add_module(
     SOURCES
         src/blend_mode.cpp
         src/clip.cpp
+        src/clip_animation.cpp
         src/compound_graph.cpp
         src/equality.cpp
         src/media.cpp
@@ -14,6 +15,7 @@ nxtcut_add_module(
         include/nxtcut/model/blend_mode.hpp
         include/nxtcut/model/checked_arithmetic.hpp
         include/nxtcut/model/clip.hpp
+        include/nxtcut/model/clip_animation.hpp
         include/nxtcut/model/compound_graph.hpp
         include/nxtcut/model/effect.hpp
         include/nxtcut/model/equality.hpp

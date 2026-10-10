@@ -6,6 +6,7 @@ nxtcut_add_module_test(
         clip_commands_test.cpp
         editor_test.cpp
         history_test.cpp
+        keyframe_edit_test.cpp
         marker_commands_test.cpp
         media_commands_test.cpp
         project_commands_test.cpp

@@ -4,6 +4,7 @@
 #include <nxtcut/core/frame_time.hpp>
 #include <nxtcut/core/mul_div.hpp>
 #include <nxtcut/model/checked_arithmetic.hpp>
+#include <nxtcut/model/clip_animation.hpp>
 #include <nxtcut/model/compound_graph.hpp>
 #include <nxtcut/model/equality.hpp>
 #include <nxtcut/model/speed.hpp>
@@ -88,7 +89,15 @@ core::Status advance_source_in(model::Clip& clip, core::Duration timeline_delta)
     return core::Status{};
 }
 
-core::Status stretch_to_duration(model::Clip& clip, core::Duration new_duration) noexcept {
+core::Status shift_keys_for_head_delta(model::Clip& clip, core::Duration head_delta) {
+    const auto neg_delta_ticks = model::detail::checked_sub(0, head_delta.ticks());
+    if (!neg_delta_ticks.has_value()) {
+        return core::make_error(core::ErrorCode::Overflow, "time arithmetic overflow");
+    }
+    return model::shift_keyframes(clip, core::Duration::from_ticks(*neg_delta_ticks));
+}
+
+core::Status stretch_to_duration(model::Clip& clip, core::Duration new_duration) {
     const model::ClipKind k = model::kind_of(clip.content);
     if (k == model::ClipKind::Image || k == model::ClipKind::Text) {
         return core::make_error(core::ErrorCode::InvalidArgument,
@@ -98,6 +107,8 @@ core::Status stretch_to_duration(model::Clip& clip, core::Duration new_duration)
     if (new_duration.ticks() <= 0) {
         return core::make_error(core::ErrorCode::InvalidArgument, "clip duration must be positive");
     }
+
+    const auto old_duration = clip.duration;
 
     const auto span_res = model::source_span(clip);
     if (!span_res.has_value()) {
@@ -146,6 +157,12 @@ core::Status stretch_to_duration(model::Clip& clip, core::Duration new_duration)
     clip.speed = new_speed;
     clip.duration = new_duration;
     fit_audio_fades(clip);
+
+    const auto scale_status =
+        model::scale_keyframes(clip, new_duration.ticks(), old_duration.ticks());
+    if (!scale_status.has_value()) {
+        return scale_status;
+    }
 
     return core::Status{};
 }
@@ -443,6 +460,16 @@ core::Result<std::pair<model::Clip, model::Clip>> ScratchTimeline::split_clip(
     right.duration = *right_dur_res;
     right.link_id = std::nullopt;
 
+    const auto neg_dur_ticks = model::detail::checked_sub(0, left.duration.ticks());
+    if (!neg_dur_ticks.has_value()) {
+        return core::make_error(core::ErrorCode::Overflow, "time arithmetic overflow");
+    }
+    const auto shift_status =
+        model::shift_keyframes(right, core::Duration::from_ticks(*neg_dur_ticks));
+    if (!shift_status.has_value()) {
+        return tl::unexpected(shift_status.error());
+    }
+
     const model::ClipKind c_kind = model::kind_of(clip.content);
     if (c_kind == model::ClipKind::Image || c_kind == model::ClipKind::Text) {
         right.source_in = model::SourceTime::zero();
@@ -500,6 +527,11 @@ core::Status ScratchTimeline::trim_head(model::Clip& clip, model::TimelineTime n
     const auto adv_status = advance_source_in(clip, *delta_res);
     if (!adv_status.has_value()) {
         return adv_status;
+    }
+
+    const auto shift_status = shift_keys_for_head_delta(clip, *delta_res);
+    if (!shift_status.has_value()) {
+        return shift_status;
     }
 
     fit_audio_fades(clip);

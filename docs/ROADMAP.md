@@ -21,7 +21,8 @@ Priority order for every decision: (1) clean, modular, tested code; (2) correctn
 | 3C-2 | Advanced edits (2) | rate-stretch (speed limited to 1/100x..100x), track push/pull (`ShiftTrackClips`) | 3C-1 | done |
 | 4A | Keyframes module | `keyframes` (core-only): easing presets, CSS-style cubic bezier, `Interpolation`, `Keyframe<T>`, `KeyframeTrack<T>` with allocation-free evaluation and playback cursor | 1B | done |
 | 4B | Animated properties | `model` may depend on `keyframes`; `Property<T>` holds an optional shared immutable `KeyframeTrack<T>` (double, Color); `identical()` | 4A, 2 | done |
-| 4C | Keyframe commands | add, move, remove, set-interpolation, clear keyframes (with undo); keyframe handling when clips are trimmed, split, joined, stretched; then spring and motion modifiers | 4B, 3A | NEXT |
+| 4C-1 | Keyframes in timeline edits | `model/clip_animation.hpp` (visitor over every animatable property, `shift_keyframes`, `scale_keyframes`); split (shift-only), head edits (shift), rate-stretch (scale), join (exact inverse of split); tail trims, slip, move untouched | 4B, 3C | done (pending merge) |
+| 4C-2 | Keyframe commands | `model::PropertyRef`; set, remove, move, set-interpolation, clear keyframes (with undo); then spring and motion modifiers | 4C-1, 3A | NEXT |
 | 5 | Storage | JSON project files, schema version and migrations, workspace layout, autosave, trash, ZIP bundles, orphan cleanup | 2, 4 | todo |
 | 6 | Media layer | FFmpeg probe, decode, frame-accurate seek, hardware-decode hooks, thumbnails, waveforms, proxies, relink, ProRes. Consider a tiny FFmpeg spike on all CI platforms around Step 5 | 1B | todo |
 | 7 | Playback | master clock, decode-ahead scheduler, frame cache, scrubbing, adaptive quality | 3, 6 | todo |
