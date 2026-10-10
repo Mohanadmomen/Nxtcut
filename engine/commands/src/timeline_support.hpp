@@ -41,6 +41,16 @@ namespace nxtcut::commands::detail {
                                                      model::TimelineTime b) noexcept;
 
 /**
+ * @brief End time of a clip as a plain value that never throws.
+ *
+ * Equivalent to model::clip_end, except that an unrepresentable end (arithmetic overflow, which a
+ * validated project cannot contain) yields the largest representable time instead of an error.
+ * Commands use it for read-only comparisons; every edit that CHANGES a clip is still checked by
+ * check_overlaps_on_touched_tracks(), which reports overflow as an error.
+ */
+[[nodiscard]] model::TimelineTime end_of(const model::Clip& clip) noexcept;
+
+/**
  * @brief Ensures audio content fades satisfy the duration bounds.
  */
 void fit_audio_fades(model::Clip& clip) noexcept;

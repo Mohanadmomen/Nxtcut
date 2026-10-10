@@ -138,7 +138,7 @@ core::Result<ChangeSet> TrimClip::build(const model::Project& project,
     // Apply trim to collected clips
     for (const auto& tid : targets) {
         auto [trk, cl] = st.find_clip(tid);
-        const auto cl_end = model::clip_end(*cl).value();
+        const auto cl_end = detail::end_of(*cl);
 
         if (edge == TrimEdge::Tail) {
             const auto p_new_end = detail::add_time(cl_end, delta);
@@ -300,7 +300,7 @@ core::Result<ChangeSet> RippleDeleteClips::build(const model::Project& project,
 
     for (const auto& cid : to_delete) {
         const auto [trk, cl] = st.find_clip(cid);
-        const auto cl_end = model::clip_end(*cl).value();
+        const auto cl_end = detail::end_of(*cl);
         raw_intervals.push_back(Interval{cl->start.ticks(), cl_end.ticks()});
         edited_track_ids.insert(trk->id);
     }
@@ -360,7 +360,7 @@ core::Result<ChangeSet> RippleDeleteClips::build(const model::Project& project,
 
         for (auto& cl : trk.clips) {
             const auto cl_start = cl.start.ticks();
-            const auto cl_end = model::clip_end(cl).value().ticks();
+            const auto cl_end = detail::end_of(cl).ticks();
 
             // Check if clip overlaps any deleted interval
             bool overlaps_any = false;
@@ -436,7 +436,7 @@ core::Result<ChangeSet> CloseGap::build(const model::Project& project,
 
     // Check if at is inside any clip on track
     for (const auto& cl : trk->clips) {
-        const auto cl_end = model::clip_end(cl).value();
+        const auto cl_end = detail::end_of(cl);
         if (cl.start <= snapped_at && snapped_at < cl_end) {
             return core::make_error(core::ErrorCode::InvalidArgument,
                                     "at position is inside a clip");
@@ -448,7 +448,7 @@ core::Result<ChangeSet> CloseGap::build(const model::Project& project,
     const model::Clip* prev_clip = nullptr;
 
     for (const auto& cl : trk->clips) {
-        const auto cl_end = model::clip_end(cl).value();
+        const auto cl_end = detail::end_of(cl);
         if (cl_end <= snapped_at) {
             prev_clip = &cl;
         } else if (cl.start > snapped_at) {
@@ -463,7 +463,7 @@ core::Result<ChangeSet> CloseGap::build(const model::Project& project,
     }
 
     const auto gap_start =
-        (prev_clip != nullptr) ? model::clip_end(*prev_clip).value() : model::TimelineTime::zero();
+        (prev_clip != nullptr) ? detail::end_of(*prev_clip) : model::TimelineTime::zero();
     const auto gap_end = next_clip->start;
 
     if (snapped_at < gap_start) {
@@ -561,7 +561,7 @@ core::Result<ChangeSet> JoinClips::build(const model::Project& project,
                                     "cannot join clips on locked track");
         }
 
-        const auto cl1_end = model::clip_end(*cl1).value();
+        const auto cl1_end = detail::end_of(*cl1);
         if (cl1_end != cl2->start) {
             return core::make_error(core::ErrorCode::InvalidArgument,
                                     "join pair clips must be adjacent");

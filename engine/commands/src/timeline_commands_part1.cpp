@@ -386,7 +386,7 @@ core::Result<ChangeSet> OverwriteClips::build(const model::Project& project,
 
         std::vector<model::Clip> updated_clips;
         for (auto& existing : trk->clips) {
-            const auto ex_end = model::clip_end(existing).value();
+            const auto ex_end = detail::end_of(existing);
 
             // Check if existing clip intersects [ov_start, ov_end)
             if (ex_end <= ov_start || existing.start >= ov_end) {
@@ -750,7 +750,7 @@ core::Result<ChangeSet> SplitClip::build(const model::Project& project,
         for (const auto& trk : st.tracks()) {
             for (const auto& other_cl : trk.clips) {
                 if (other_cl.link_id == orig_clip->link_id && other_cl.id != clip) {
-                    const auto other_end = model::clip_end(other_cl).value();
+                    const auto other_end = detail::end_of(other_cl);
                     if (other_cl.start < snapped_at && snapped_at < other_end) {
                         if (trk.locked) {
                             return core::make_error(core::ErrorCode::InvalidArgument,
