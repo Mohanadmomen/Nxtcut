@@ -83,6 +83,21 @@ void fit_audio_fades(model::Clip& clip) noexcept;
 [[nodiscard]] core::Status advance_source_in(model::Clip& clip,
                                              core::Duration timeline_delta) noexcept;
 
+inline constexpr std::int64_t kMaxSpeedFactor = 100;  // speed must stay within 1/100 .. 100/1
+
+/**
+ * @brief Sets clip.speed so that the clip's CURRENT source span is played over new_duration, then
+ * sets clip.duration = new_duration. source_in is unchanged.
+ *
+ * @param clip The clip to modify.
+ * @param new_duration New timeline duration (> 0).
+ * @return Success, or ErrorCode::InvalidArgument if clip kind is Image/Text, new_duration <= 0,
+ *         or speed is outside 1/100..100/1.
+ * @note Thread safety: Mutates the provided clip; caller must ensure exclusive access.
+ */
+[[nodiscard]] core::Status stretch_to_duration(model::Clip& clip,
+                                               core::Duration new_duration) noexcept;
+
 /**
  * @brief Working copy of a single track's clips during command execution.
  */

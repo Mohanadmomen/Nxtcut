@@ -136,6 +136,11 @@ TEST(TimelineEditsEditorTest, EveryCommandProducesNonEmptyUndoLabel) {
     check_label(JoinClips{s, {{c, c}}}, "Join Clips");
     check_label(LinkClips{s, {c, c}}, "Link Clips");
     check_label(UnlinkClips{s, {c}}, "Unlink Clips");
+    check_label(RollEdit{s, c, c, {}}, "Roll Edit");
+    check_label(SlipClip{s, c, {}}, "Slip Clip");
+    check_label(SlideClip{s, c, {}}, "Slide Clip");
+    check_label(RateStretch{s, c, TrimEdge::Tail, {}}, "Rate Stretch");
+    check_label(ShiftTrackClips{s, t, {}}, "Shift Track Clips");
 }
 
 TEST(TimelineEditsEditorTest, DeterminismAcrossIdenticallySeededEditors) {
@@ -211,6 +216,44 @@ TEST(TimelineEditsEditorTest, TransactionWithRollEditThenSlideClipSingleUndoRest
 
     EXPECT_TRUE(editor.can_undo());
     EXPECT_EQ(editor.undo_label(), "Roll and Slide Batch");
+
+    // Single undo restores the exact initial snapshot
+    auto undo_res = editor.undo();
+    ASSERT_TRUE(test::is_ok(undo_res));
+    EXPECT_TRUE(model::identical(*editor.snapshot(), *initial_snapshot));
+}
+
+TEST(TimelineEditsEditorTest,
+     TransactionWithShiftTrackClipsThenRateStretchSingleUndoRestoresInitial) {
+    core::UuidGenerator gen(1406ULL);
+    auto ed_res = Editor::create(model::test::build_valid_project(gen), gen);
+    ASSERT_TRUE(test::is_ok(ed_res));
+    Editor& editor = *ed_res.value();
+
+    const auto initial_snapshot = editor.snapshot();
+    const auto main_seq_id = initial_snapshot->main_sequence;
+    const auto v_track_id = initial_snapshot->sequences.at(main_seq_id).tracks[0].id;
+    const auto clip0_id = initial_snapshot->sequences.at(main_seq_id).tracks[0].clips[0].id;
+
+    auto tx_res = editor.begin_transaction("Shift and Stretch Batch");
+    ASSERT_TRUE(test::is_ok(tx_res));
+    auto& tx = tx_res.value();
+
+    // 1. ShiftTrackClips: push Clip 2 at 10s by +2s (10s -> 12s)
+    ShiftTrackClips shift_cmd{main_seq_id, v_track_id, timeline_at_seconds(10),
+                              duration_of_seconds(2), true};
+    ASSERT_TRUE(test::is_ok(tx.execute(shift_cmd)));
+
+    // 2. RateStretch: stretch Clip 0 (0..5s) tail to 4s (speed becomes 5/4)
+    RateStretch stretch_cmd{main_seq_id, clip0_id, TrimEdge::Tail, timeline_at_seconds(4)};
+    ASSERT_TRUE(test::is_ok(tx.execute(stretch_cmd)));
+
+    // Commit as single step
+    auto commit_res = tx.commit();
+    ASSERT_TRUE(test::is_ok(commit_res));
+
+    EXPECT_TRUE(editor.can_undo());
+    EXPECT_EQ(editor.undo_label(), "Shift and Stretch Batch");
 
     // Single undo restores the exact initial snapshot
     auto undo_res = editor.undo();

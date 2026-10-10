@@ -4,7 +4,7 @@ Single place to see what NxtCut is, what is done, what is left, and how to work 
 Read this first. The full plan (every step, UI steps, milestones) is in `docs/ROADMAP.md`.
 Update this file after every merged step (the "Status" and "Next" sections).
 
-Last updated: 2026-10-10 (Step 3B and its cleanup merged, 436 tests, CI green).
+Last updated: 2026-10-10 (Step 3C-1 merged, 474 tests, CI green).
 
 ## What NxtCut is
 A professional multi-track desktop video editor: C++20, Qt 6 (Widgets) for the UI, MIT licensed.
@@ -24,8 +24,8 @@ drift, no data loss); (3) performance; (4) feature count.
 | 2 | `model`: project, sequence, track, clip, validation, compound-clip graph | done |
 | 3A | `commands`: ChangeSet, History, Editor, transactions, 15 simple commands | done |
 | 3B | Timeline edits: add, insert, overwrite, move, delete, split, trim, ripple delete, close gap, join, link, unlink | done (merged) |
-| 3C-1 | Advanced edits (1): roll, slip, slide; unify source-offset rounding of ripple/non-ripple trims | NEXT |
-| 3C-2 | Advanced edits (2): rate-stretch (speed 1/100x..100x), track push/pull (`ShiftTrackClips`) | todo |
+| 3C-1 | Advanced edits (1): roll, slip, slide; unify source-offset rounding of ripple/non-ripple trims | done (merged) |
+| 3C-2 | Advanced edits (2): rate-stretch (speed 1/100x..100x), track push/pull (`ShiftTrackClips`) | NEXT |
 | 4 | Keyframes and animated properties | todo |
 | 5 | Storage: JSON project files, schema versions, autosave | todo |
 | 6 | Media layer: FFmpeg probe/decode/seek, thumbnails, waveforms | todo |
@@ -59,16 +59,16 @@ timeline edits follow mainstream editors (sync-lock ripple, frame snapping, link
 no Adobe plugin loading (proprietary), OpenFX and VST3/CLAP instead.
 
 ## Next
-Write the Step 3C-1 prompt (`RollEdit`, `SlipClip`, `SlideClip`) and implement it on branch
-`step-3c1-roll-slip-slide`. Defaults agreed: all three edit linked clips together (flag `ignore_links`), fail as a
-whole on locked tracks, limited by media handles. Planned in the same step: one shared helper for
-"source offset from a timeline delta" so ripple and non-ripple trims round identically.
+Write the Step 3C-2 prompt (`RateStretch`, `ShiftTrackClips`) and implement it on branch
+`step-3c2-rate-stretch-shift`. Defaults agreed: `RateStretch` mirrors `TrimClip` (edge, new_edge, ripple, scope,
+ignore_links); the source range stays fixed and the new speed is the exact rational source_span / new_duration,
+limited to 1/100x..100x; linked partners stretch together. `ShiftTrackClips` is {sequence, track, at, delta,
+ignore_links}: clips starting at or after `at` shift by a signed delta, no clamping, linked partners move too.
 
 ## Known technical debt
 - `diff_to_changes` and clip lookups are linear (fine now; benchmark at Steps 6-7).
 - `Editor::commit` copies the project and runs a full validate (benchmark later).
-- Ripple head trim rounds source offsets differently from the non-ripple path for non-integer speeds
-  (one tick); unify in Step 3C.
+- `SlipClip` with a zero delta on an image or text clip returns an empty ChangeSet instead of the "slip" error.
 - `spdlog` is installed but unused. `compile_checks.hpp` exists twice (tests/core, tests/model).
 - GitHub Actions versions should be bumped; add `THIRD_PARTY_NOTICES` when the first dependency is bundled.
 

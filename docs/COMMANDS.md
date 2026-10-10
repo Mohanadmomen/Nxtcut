@@ -238,11 +238,38 @@ Media boundaries and source limits are treated as hard barriers rather than clam
 | `SlideClip` | `sequence`, `clip`, `new_start`, `ignore_links` | Slides clip to `snap(new_start)`. Slid clip retains duration and source offset. Left neighbor's tail and right neighbor's head roll by `delta = snapped - start`. Slid clip and linked partners must each have touching neighbors on both sides (failing with `"neighbor"`). Ambiguous clip roles (clip participating in multiple roles or touching linked clips both slid) fail with `"ambiguous"`. Neighbors must retain at least 1 frame of duration (failing with `"one frame"`). Locked tracks fail with `"locked"`. Zero delta returns empty `ChangeSet`. |
 
 ---
+
+## Step 3C-2 Rate Stretch and Track Shifting
+
+Step 3C-2 introduces timeline rate manipulation and track push/pull operations: `RateStretch` and `ShiftTrackClips`. Both operate transactionally via `ChangeSet`, do not add or remove clips (`created_clips` is empty), and enforce locked-track boundaries and link coordination.
+
+### General Design & Conventions
+
+#### 1. Fixed Source Range Rule & Speed Limits
+In `RateStretch`, dragging an edge alters playback speed such that the clip's current source span ($S = \text{source\_span(clip)}$ ticks) is played across the new timeline duration ($D$ ticks). The clip's source range never changes (`source_in` is unaltered, and new speed $= \text{Speed::create}(S, D)$ ensures $\lceil D \cdot S / D \rceil = S$).
+Playback speed must stay within hard boundaries:
+$$\frac{1}{100} \le \frac{\text{numerator}}{\text{denominator}} \le \frac{100}{1}$$
+Violations fail immediately with `ErrorCode::InvalidArgument` containing `"speed"`. Image and Text clips have no source range and cannot be rate stretched (failing with `"stretch"`). When an audio clip shrinks, audio content fades are refitted via `fit_audio_fades`.
+
+#### 2. Track Shift Operations
+`ShiftTrackClips` pushes or pulls all clips on a track starting at or after `snap(at)` by a signed duration delta. Clips starting strictly before `snap(at)` (including those straddling `at`) do not shift. Linked partners on any track shift by the same delta (even if starting before `at`) unless `ignore_links == true`. Each partner shifts at most once. Collisions with unshifted clips or partner-track clips fail with `ErrorCode::InvalidArgument` containing `"overlap"`. Negative start times fail with `"negative"`.
+
+---
+
+### Part 4 Commands Reference
+
+| Command | Arguments | Business & Validation Rules |
+| :--- | :--- | :--- |
+| `RateStretch` | `sequence`, `clip`, `edge`, `new_edge`, `ripple`, `scope`, `ignore_links` | Changes playback speed by moving `edge` to `snap(new_edge)` while preserving the source range. Tail stretch adjusts end and duration; non-ripple head stretch sets new start while keeping end fixed; ripple head stretch keeps start, changes duration, and shifts subsequent material starting at or after the original end across scope tracks. Duration must be at least 1 frame (failing with `"one frame"`). Speed must stay within $1/100 \times \dots 100 \times$ (failing with `"speed"`). Image/Text clips rejected with `"stretch"`. Linked partners stretch identically unless `ignore_links`. Audio fades refitted via `fit_audio_fades`. Locked tracks fail with `"locked"`. Zero delta returns empty `ChangeSet`. |
+| `ShiftTrackClips` | `sequence`, `track`, `at`, `delta`, `ignore_links` | Shifts all clips on `track` with `start >= snap(at)` by `snap_delta(delta)`. Unless `ignore_links`, linked partners on any track shift by the same delta once. Collision on target or partner track fails with `"overlap"`. Start before 0 fails with `"negative"`. Unknown track/sequence fails with `NotFound`. `snap(at) < 0` fails with `InvalidArgument`. Locked target or partner track fails with `"locked"`. Empty shifted set or zero delta returns empty `ChangeSet`. |
+
+---
 ## Roadmap: Steps 3B and 3C
 
 - **Step 3B (Implemented)**: 12 timeline geometry editing commands (`AddClips`, `InsertClips`, `OverwriteClips`, `MoveClips`, `DeleteClips`, `SplitClip`, `TrimClip`, `RippleDeleteClips`, `CloseGap`, `JoinClips`, `LinkClips`, `UnlinkClips`) with frame snapping, ripple scoping, linked audio/video edit coordination, deterministic ID generation order, fade fitting, and transactional undo/redo via `ChangeSet`.
 - **Step 3C-1 (Implemented)**: Advanced trimming modes (`RollEdit`, `SlipClip`, `SlideClip`) with unified source-offset rounding toward zero, partner coordination, ambiguous role validation, and handle boundary limits.
-- **Step 3C-2 (Next)**: Additional advanced trimming and rate manipulation (rate-stretch edit, timeline track push/pull).
+- **Step 3C-2 (Implemented)**: Rate-stretch edit (`RateStretch`) and track push/pull (`ShiftTrackClips`) with fixed source range preservation, exact rational speed factor bounds (1/100x..100x), partner coordination, and scope-based ripple shifting. Step 3C complete.
+- **Step 4 (Next)**: Keyframing and parameter animation.
 
 
 
